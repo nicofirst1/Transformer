@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from Optim import CosineWithRestarts
 from Batch import create_masks
 import dill as pickle
+import time
 
 def train_model(model, opt):
     
@@ -28,8 +29,8 @@ def train_model(model, opt):
                     
         for i, batch in enumerate(opt.train): 
 
-            src = batch.src.transpose(0,1)
-            trg = batch.trg.transpose(0,1)
+            src = batch.src.transpose(0,1).cuda()
+            trg = batch.trg.transpose(0,1).cuda()
             trg_input = trg[:, :-1]
             src_mask, trg_mask = create_masks(src, trg_input, opt)
             preds = model(src, trg_input, src_mask, trg_mask)
@@ -59,16 +60,20 @@ def train_model(model, opt):
                 cptime = time.time()
    
    
-        print("%dm: epoch %d [%s%s]  %d%%  loss = %.3f\nepoch %d complete, loss = %.03f" %\
-        ((time.time() - start)//60, epoch + 1, "".join('#'*(100//5)), "".join(' '*(20-(100//5))), 100, avg_loss, epoch + 1, avg_loss))
+        print("%d s: epoch %d [%s%s]  %d%%  loss = %.3f\nepoch %d complete, loss = %.03f" %\
+        ((time.time() - start), epoch + 1, "".join('#'*(100//5)), "".join(' '*(20-(100//5))), 100, avg_loss, epoch + 1, avg_loss))
+
+        print("saving weights to " + opt.output_dir + "/...")
+        torch.save(model.state_dict(), f'{opt.output_dir}/model_weights')
+        print("weights saved ! ")
 
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-src_data', required=True)
-    parser.add_argument('-trg_data', required=True)
-    parser.add_argument('-src_lang', required=True)
-    parser.add_argument('-trg_lang', required=True)
+    parser.add_argument('-src_data', default='data/english.txt')
+    parser.add_argument('-trg_data', default='data/french.txt')
+    parser.add_argument('-src_lang', default='en_core_web_sm')
+    parser.add_argument('-trg_lang', default='fr_core_news_sm')
     parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-SGDR', action='store_true')
     parser.add_argument('-epochs', type=int, default=2)
@@ -84,8 +89,10 @@ def main():
     parser.add_argument('-max_strlen', type=int, default=80)
     parser.add_argument('-floyd', action='store_true')
     parser.add_argument('-checkpoint', type=int, default=0)
+    parser.add_argument('-output_dir', default='output')
 
     opt = parser.parse_args()
+    print(opt)
     
     opt.device = 0 if opt.no_cuda is False else -1
     if opt.device == 0:
@@ -93,8 +100,13 @@ def main():
     
     read_data(opt)
     SRC, TRG = create_fields(opt)
+
+    if not os.path.isdir(opt.output_dir):
+        os.makedirs(opt.output_dir)
+
     opt.train = create_dataset(opt, SRC, TRG)
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
+    model.cuda()
 
     opt.optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.98), eps=1e-9)
     if opt.SGDR == True:
@@ -108,76 +120,12 @@ def main():
         pickle.dump(SRC, open('weights/SRC.pkl', 'wb'))
         pickle.dump(TRG, open('weights/TRG.pkl', 'wb'))
     
+    print("saving field pickles to " + opt.output_dir + "/...")
+    pickle.dump(SRC, open(f'{opt.output_dir}/SRC.pkl', 'wb'))
+    pickle.dump(TRG, open(f'{opt.output_dir}/TRG.pkl', 'wb'))
+    print("field pickles saved ! ")
+
     train_model(model, opt)
 
-    if opt.floyd is False:
-        promptNextAction(model, opt, SRC, TRG)
-
-def yesno(response):
-    while True:
-        if response != 'y' and response != 'n':
-            response = input('command not recognised, enter y or n : ')
-        else:
-            return response
-
-def promptNextAction(model, opt, SRC, TRG):
-
-    saved_once = 1 if opt.load_weights is not None or opt.checkpoint > 0 else 0
-    
-    if opt.load_weights is not None:
-        dst = opt.load_weights
-    if opt.checkpoint > 0:
-        dst = 'weights'
-
-    while True:
-        save = yesno(input('training complete, save results? [y/n] : '))
-        if save == 'y':
-            while True:
-                if saved_once != 0:
-                    res = yesno("save to same folder? [y/n] : ")
-                    if res == 'y':
-                        break
-                dst = input('enter folder name to create for weights (no spaces) : ')
-                if ' ' in dst or len(dst) < 1 or len(dst) > 30:
-                    dst = input("name must not contain spaces and be between 1 and 30 characters length, enter again : ")
-                else:
-                    try:
-                        os.mkdir(dst)
-                    except:
-                        res= yesno(input(dst + " already exists, use anyway? [y/n] : "))
-                        if res == 'n':
-                            continue
-                    break
-            
-            print("saving weights to " + dst + "/...")
-            torch.save(model.state_dict(), f'{dst}/model_weights')
-            if saved_once == 0:
-                pickle.dump(SRC, open(f'{dst}/SRC.pkl', 'wb'))
-                pickle.dump(TRG, open(f'{dst}/TRG.pkl', 'wb'))
-                saved_once = 1
-            
-            print("weights and field pickles saved to " + dst)
-
-        res = yesno(input("train for more epochs? [y/n] : "))
-        if res == 'y':
-            while True:
-                epochs = input("type number of epochs to train for : ")
-                try:
-                    epochs = int(epochs)
-                except:
-                    print("input not a number")
-                    continue
-                if epochs < 1:
-                    print("epochs must be at least 1")
-                    continue
-                else:
-                    break
-            opt.epochs = epochs
-            train_model(model, opt)
-        else:
-            print("exiting program...")
-            break
-
-    # for asking about further training use while true loop, and return
 if __name__ == "__main__":
     main()

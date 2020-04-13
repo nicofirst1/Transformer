@@ -67,8 +67,8 @@ def main():
     parser.add_argument('-max_len', type=int, default=80)
     parser.add_argument('-d_model', type=int, default=512)
     parser.add_argument('-n_layers', type=int, default=6)
-    parser.add_argument('-src_lang', required=True)
-    parser.add_argument('-trg_lang', required=True)
+    parser.add_argument('-src_lang', default='en_core_web_sm')
+    parser.add_argument('-trg_lang', default='fr_core_news_sm')
     parser.add_argument('-heads', type=int, default=8)
     parser.add_argument('-dropout', type=int, default=0.1)
     parser.add_argument('-no_cuda', action='store_true')
@@ -91,7 +91,7 @@ def main():
         if opt.text=='f':
             fpath =input("Enter a sentence to translate (type 'f' to load from file, or 'q' to quit):\n")
             try:
-                opt.text = ' '.join(open(opt.text, encoding='utf-8').read().split('\n'))
+                opt.text = ' '.join(open(fpath, encoding='utf-8').read().split('\n'))
             except:
                 print("error opening or reading text file")
                 continue
