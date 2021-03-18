@@ -29,8 +29,8 @@ def train_model(model, opt):
                     
         for i, batch in enumerate(opt.train): 
 
-            src = batch.src.transpose(0,1).cuda()
-            trg = batch.trg.transpose(0,1).cuda()
+            src = batch.src.transpose(0,1)
+            trg = batch.trg.transpose(0,1)
             trg_input = trg[:, :-1]
             src_mask, trg_mask = create_masks(src, trg_input, opt)
             preds = model(src, trg_input, src_mask, trg_mask)
@@ -82,7 +82,7 @@ def main():
     parser.add_argument('-heads', type=int, default=8)
     parser.add_argument('-dropout', type=int, default=0.1)
     parser.add_argument('-batchsize', type=int, default=1500)
-    parser.add_argument('-printevery', type=int, default=100)
+    parser.add_argument('-printevery', type=int, default=10)
     parser.add_argument('-lr', type=int, default=0.0001)
     parser.add_argument('-load_weights')
     parser.add_argument('-create_valset', action='store_true')
@@ -94,8 +94,8 @@ def main():
     opt = parser.parse_args()
     print(opt)
     
-    opt.device = 0 if opt.no_cuda is False else -1
-    if opt.device == 0:
+    opt.device = "cpu" if opt.no_cuda else "cuda"
+    if opt.device == "cuda":
         assert torch.cuda.is_available()
     
     read_data(opt)
@@ -106,7 +106,8 @@ def main():
 
     opt.train = create_dataset(opt, SRC, TRG)
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
-    model.cuda()
+    if opt.device == "cuda":
+        model.cuda()
 
     opt.optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.98), eps=1e-9)
     if opt.SGDR == True:
