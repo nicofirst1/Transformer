@@ -12,6 +12,14 @@ Launch a [FloydHub Workspace](https://www.floydhub.com/product/build) to start t
 
 Once you've started the workspace, run the 'start_here' notebook or type 'floyd run' into the workspace terminal. This will begin to train the model on the sample dataset.
 
+# Installing pytorch 
+
+Check [this](https://discuss.pytorch.org/t/cuda-error-cublas-status-internal-error-when-calling-cublascreate-handle/114341/11) if you get an error of the sort
+
+``
+RuntimeError: CUDA error: CUBLAS_STATUS_INTERNAL_ERROR when calling `cublasCreate(handle)`
+``
+
 # Usage
 
 Two text files containing parallel sentences (seperated by '\n' characters) in two languages are required to train the model. See an example of this in the data/ folder (french.txt and english.txt).

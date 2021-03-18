@@ -70,10 +70,10 @@ def train_model(model, opt):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-src_data', default='data/english.txt')
-    parser.add_argument('-trg_data', default='data/french.txt')
+    parser.add_argument('-src_data', default='data/europarl-v7.it-en.en')
+    parser.add_argument('-trg_data', default='data/europarl-v7.it-en.it')
     parser.add_argument('-src_lang', default='en_core_web_sm')
-    parser.add_argument('-trg_lang', default='fr_core_news_sm')
+    parser.add_argument('-trg_lang', default='it_core_news_sm')
     parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-SGDR', action='store_true')
     parser.add_argument('-epochs', type=int, default=2)
@@ -81,7 +81,7 @@ def main():
     parser.add_argument('-n_layers', type=int, default=6)
     parser.add_argument('-heads', type=int, default=8)
     parser.add_argument('-dropout', type=int, default=0.1)
-    parser.add_argument('-batchsize', type=int, default=1500)
+    parser.add_argument('-batchsize', type=int, default=64)
     parser.add_argument('-printevery', type=int, default=10)
     parser.add_argument('-lr', type=int, default=0.0001)
     parser.add_argument('-load_weights')
@@ -99,12 +99,12 @@ def main():
         assert torch.cuda.is_available()
     
     read_data(opt)
-    SRC, TRG = create_fields(opt)
+    create_fields(opt)
 
     if not os.path.isdir(opt.output_dir):
         os.makedirs(opt.output_dir)
 
-    opt.train = create_dataset(opt, SRC, TRG)
+    opt.train, SRC, TRG = create_dataset(opt)
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
     if opt.device == "cuda":
         model.cuda()

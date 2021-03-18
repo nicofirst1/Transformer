@@ -42,7 +42,7 @@ def translate_sentence(sentence, model, opt, SRC, TRG):
         else:
             indexed.append(get_synonym(tok, SRC))
     sentence = Variable(torch.LongTensor([indexed]))
-    if opt.device == 0:
+    if opt.device == "cuda":
         sentence = sentence.cuda()
     
     sentence = beam_search(sentence, model, SRC, TRG, opt)
@@ -76,7 +76,7 @@ def main():
     
     opt = parser.parse_args()
 
-    opt.device = 0 if opt.no_cuda is False else -1
+    opt.device = "cpu" if opt.no_cuda  else "cuda"
  
     assert opt.k > 0
     assert opt.max_len > 10
