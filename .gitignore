@@ -6,3 +6,9 @@ __pycache__/
 *.pkl
 
 *.csv
+
+output/model_weights
+
+data/europarl-v7.it-en.it
+
+data/europarl-v7.it-en.en
