@@ -17,7 +17,7 @@ def create_masks(src, trg, opt):
     src_mask = (src != opt.src_pad).unsqueeze(-2)
 
     if trg is not None:
-        if opt.device == 0:
+        if opt.device == "cuda":
             trg.cuda()
         trg_mask = (trg != opt.trg_pad).unsqueeze(-2)
         size = trg.size(1) # get seq_len for matrix
