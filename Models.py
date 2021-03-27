@@ -57,9 +57,10 @@ def get_model(opt, src_vocab, trg_vocab):
     assert opt.dropout < 1
 
     model = Transformer(src_vocab, trg_vocab, opt.d_model, opt.n_layers, opt.heads, opt.dropout)
-       
-    print("loading pretrained weights...")
-    model.load_state_dict(torch.load(f'{opt.load_weights}/model_weights'))
+
+    if opt.load_weights is not None:
+        print("loading pretrained weights...")
+        model.load_state_dict(torch.load(f'{opt.output_dir}/model_weights'))
 
     if opt.device == "cuda":
         model = model.cuda()
