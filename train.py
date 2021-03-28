@@ -8,7 +8,7 @@ from Optim import CosineWithRestarts
 from Process import *
 from core import Trainer, ProgressBarLogger
 from core.games import ClassicGame
-from utils import get_len
+from core.util import get_len
 
 
 def loss_fn(preds, lables, trg_pad):
@@ -50,14 +50,9 @@ def main():
     if opt.device == "cuda":
         assert torch.cuda.is_available()
 
-    src_data, trg_data = read_data(opt)
-    create_fields(opt, src_data, trg_data)
-
-    if not os.path.isdir(opt.output_dir):
-        os.makedirs(opt.output_dir)
-
-    train_data, SRC, TRG = create_dataset(opt)
+    train_data, SRC, TRG = data_pipeline(opt)
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
+
     if opt.device == "cuda":
         model.cuda()
 
@@ -67,16 +62,6 @@ def main():
     if opt.checkpoint > 0:
         print(
             "model weights will be saved every %d minutes and at end of epoch to directory weights/" % (opt.checkpoint))
-
-    if opt.load_weights is not None and opt.floyd is not None:
-        os.mkdir('weights')
-        pickle.dump(SRC, open('weights/SRC.pkl', 'wb'))
-        pickle.dump(TRG, open('weights/TRG.pkl', 'wb'))
-
-    print("saving field pickles to " + opt.output_dir + "/...")
-    pickle.dump(SRC, open(f'{opt.output_dir}/SRC.pkl', 'wb'))
-    pickle.dump(TRG, open(f'{opt.output_dir}/TRG.pkl', 'wb'))
-    print("field pickles saved ! ")
 
     game = ClassicGame(opt.src_pad,
                        opt.trg_pad,

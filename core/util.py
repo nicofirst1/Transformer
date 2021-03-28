@@ -4,20 +4,24 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
-import pathlib
 import random
 import sys
 from collections import defaultdict
-from typing import Any, Iterable, List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import torch
 
-from .interaction import Interaction
-
 common_opts = None
 optimizer = None
 summary_writer = None
+
+
+def get_len(train):
+    for i, b in enumerate(train):
+        pass
+
+    return i
 
 
 def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -30,12 +34,6 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
         type=str,
         default=None,
         help="Where the checkpoints are stored",
-    )
-    arg_parser.add_argument(
-        "--preemptable",
-        default=False,
-        action="store_true",
-        help="If the flag is set, Trainer would always try to initialise itself from a checkpoint",
     )
 
     arg_parser.add_argument(
@@ -61,7 +59,7 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
         type=str,
         default=None,
         help="If the parameter is set, model, core, and optimizer states are loaded from the "
-        "checkpoint (default: None)",
+             "checkpoint (default: None)",
     )
     # cuda setup
     arg_parser.add_argument(
@@ -111,25 +109,11 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--tensorboard_dir", type=str, default="runs/", help="Path for tensorboard log"
     )
 
-    arg_parser.add_argument(
-        "--distributed_port",
-        default=18363,
-        type=int,
-        help="Port to use in distributed learning",
-    )
-
-    arg_parser.add_argument(
-        "--fp16",
-        default=False,
-        help="Use mixed-precision for training/evaluating models",
-        action="store_true",
-    )
-
     return arg_parser
 
 
 def _get_params(
-    arg_parser: argparse.ArgumentParser, params: List[str]
+        arg_parser: argparse.ArgumentParser, params: List[str]
 ) -> argparse.Namespace:
     args = arg_parser.parse_args(params)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -145,8 +129,8 @@ def _get_params(
 
 
 def init(
-    arg_parser: Optional[argparse.ArgumentParser] = None,
-    params: Optional[List[str]] = None,
+        arg_parser: Optional[argparse.ArgumentParser] = None,
+        params: Optional[List[str]] = None,
 ) -> argparse.Namespace:
     """
     Should be called before any code using egg; initializes the common components, such as
@@ -221,10 +205,6 @@ def get_opts() -> argparse.Namespace:
     return common_opts
 
 
-def build_optimizer(params: Iterable) -> torch.optim.Optimizer:
-    return optimizer(params, lr=get_opts().lr)
-
-
 def get_summary_writer() -> "torch.utils.SummaryWriter":
     """
     :return: Returns an initialized instance of torch.util.SummaryWriter
@@ -253,55 +233,6 @@ def _set_seed(seed) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def dump_interactions(
-    game: torch.nn.Module,
-    dataset: "torch.utils.data.DataLoader",
-    gs: bool,
-    variable_length: bool,
-    device: Optional[torch.device] = None,
-    apply_padding: bool = True,
-) -> Interaction:
-    """
-    A tool to dump the interaction between Sender and Receiver
-    :param game: A Game instance
-    :param dataset: Dataset of inputs to be used when analyzing the communication
-    :param gs: whether the messages should be argmaxed over the last dimension.
-        Handy, if Gumbel-Softmax relaxation was used for training.
-    :param variable_length: whether variable-length communication is used.
-    :param device: device (e.g. 'cuda') to be used.
-    :return: The entire log of agent interactions, represented as an Interaction instance.
-    """
-    train_state = game.training  # persist so we restore it back
-    game.eval()
-    device = device if device is not None else common_opts.device
-    full_interaction = None
-
-    with torch.no_grad():
-        for batch in dataset:
-            batch = move_to(batch, device)
-            _, interaction = game(*batch)
-            interaction = interaction.to("cpu")
-
-            if gs:
-                interaction.message = interaction.message.argmax(
-                    dim=-1
-                )  # actual symbols instead of one-hot encoded
-            if apply_padding and variable_length:
-                assert interaction.message_length is not None
-                for i in range(interaction.size):
-                    length = interaction.message_length[i].long().item()
-                    interaction.message[i, length:] = 0  # 0 is always EOS
-
-            full_interaction = (
-                full_interaction + interaction
-                if full_interaction is not None
-                else interaction
-            )
-
-    game.train(mode=train_state)
-    return interaction
-
-
 def move_to(x: Any, device: torch.device) -> Any:
     """
     Simple utility function that moves a tensor or a dict/list/tuple of (dict/list/tuples of ...) tensors
@@ -320,42 +251,3 @@ def move_to(x: Any, device: torch.device) -> Any:
             x[k] = move_to(v, device)
         return x
     return x
-
-
-def load_interactions(file_path: str):
-    file_path = pathlib.Path(file_path)
-    assert (
-        file_path.exists()
-    ), f"{file_path} does not exist. Interactions cannot be loaded"
-    try:
-        return torch.load(file_path)
-    except FileNotFoundError:
-        print(f"{file_path} was an invalid path to load interactions.")
-        exit(1)
-
-
-def find_lengths(messages: torch.Tensor) -> torch.Tensor:
-    """
-    :param messages: A tensor of term ids, encoded as Long values, of size (batch size, max sequence length).
-    :returns A tensor with lengths of the sequences, including the end-of-sequence symbol <eos> (in EGG, it is 0).
-    If no <eos> is found, the full length is returned (i.e. messages.size(1)).
-
-    >>> messages = torch.tensor([[1, 1, 0, 0, 0, 1], [1, 1, 1, 10, 100500, 5]])
-    >>> lengths = find_lengths(messages)
-    >>> lengths
-    tensor([3, 6])
-    """
-    max_k = messages.size(1)
-    zero_mask = messages == 0
-    # a bit involved logic, but it seems to be faster for large batches than slicing batch dimension and
-    # querying torch.nonzero()
-    # zero_mask contains ones on positions where 0 occur in the outputs, and 1 otherwise
-    # zero_mask.cumsum(dim=1) would contain non-zeros on all positions after 0 occurred
-    # zero_mask.cumsum(dim=1) > 0 would contain ones on all positions after 0 occurred
-    # (zero_mask.cumsum(dim=1) > 0).sum(dim=1) equates to the number of steps  happened after 0 occured (including it)
-    # max_k - (zero_mask.cumsum(dim=1) > 0).sum(dim=1) is the number of steps before 0 took place
-
-    lengths = max_k - (zero_mask.cumsum(dim=1) > 0).sum(dim=1)
-    lengths.add_(1).clamp_(max=max_k)
-
-    return lengths

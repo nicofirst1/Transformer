@@ -82,7 +82,7 @@ def main():
     assert opt.k > 0
     assert opt.max_len > 10
 
-    SRC, TRG = load_fields(opt)
+    SRC, TRG = load_fields(opt.output_dir)
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
 
     while True:

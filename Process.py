@@ -14,17 +14,19 @@ file_perc = str(REDUCE_PERC).replace(".", "")
 DF_PATH_REDUCED = f"data/translate_transformer_reduced{file_perc}.csv"
 
 
-def read_data(opt):
+def read_data(src_data_path, trg_data_path):
     try:
-        src_data = open(opt.src_data).read().strip().split('\n')
+        with open(src_data_path, "r") as f:
+            src_data = f.read().strip().split('\n')
     except:
-        print("error: '" + opt.src_data + "' file not found")
+        print("error: '" + src_data_path + "' file not found")
         quit()
 
     try:
-        trg_data = open(opt.trg_data).read().strip().split('\n')
+        with open(trg_data_path, "r") as f:
+            trg_data = f.read().strip().split('\n')
     except:
-        print("error: '" + opt.trg_data + "' file not found")
+        print("error: '" + trg_data_path + "' file not found")
         quit()
 
     return src_data, trg_data
@@ -66,10 +68,10 @@ def create_fields(opt, src_data, trg_data):
         df_subset.to_csv(DF_PATH_REDUCED, index=False)
 
 
-def load_fields(opt):
-    with open(f"{opt.output_dir}/SRC.pkl", "rb") as file:
+def load_fields(output_dir):
+    with open(f"{output_dir}/SRC.pkl", "rb") as file:
         SRC = pickle.load(file)
-    with open(f"{opt.output_dir}/TRG.pkl", "rb") as file:
+    with open(f"{output_dir}/TRG.pkl", "rb") as file:
         TRG = pickle.load(file)
 
     return SRC, TRG
@@ -102,3 +104,15 @@ def create_dataset(opt):
     opt.trg_pad = TRG.vocab.stoi['<pad>']
 
     return train_iter, SRC, TRG
+
+
+def data_pipeline(opt):
+    src_data, trg_data = read_data(opt.src_data, opt.trg_data)
+    create_fields(opt, src_data, trg_data)
+
+    if not os.path.isdir(opt.output_dir):
+        os.makedirs(opt.output_dir)
+
+    train_data, SRC, TRG = create_dataset(opt)
+
+    return train_data, SRC, TRG
