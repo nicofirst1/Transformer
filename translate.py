@@ -60,6 +60,8 @@ def translate(opt, model, SRC, TRG):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-encoder_num', type=int, default=4)
+    parser.add_argument('-dencoder_num', type=int, default=4)
     parser.add_argument('-load_weights', default="output", required=True)
     parser.add_argument('-src_lang', default='en_core_web_sm')
     parser.add_argument('-trg_lang', default='it_core_news_sm')
