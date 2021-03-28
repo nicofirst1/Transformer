@@ -3,7 +3,8 @@ import math
 import torch
 import torch.nn.functional as F
 
-from Batch import nopeak_mask
+from core import move_to
+from data_gen.Batch import nopeak_mask
 
 
 def init_vars(src, model, SRC, TRG, opt):
@@ -13,11 +14,10 @@ def init_vars(src, model, SRC, TRG, opt):
 
     outputs = torch.LongTensor([[init_tok]])
 
-    trg_mask = nopeak_mask(1, opt)
+    trg_mask = nopeak_mask(1, opt.device)
 
-    if opt.device == "cuda":
-        outputs = outputs.cuda()
-        trg_mask = trg_mask.cuda()
+    outputs = move_to(outputs, opt.device)
+    trg_mask = move_to(trg_mask, opt.device)
 
     decoded = model.decoder(outputs, e_output, src_mask, trg_mask)
     out = model.out(decoded)
@@ -27,14 +27,14 @@ def init_vars(src, model, SRC, TRG, opt):
     log_scores = torch.Tensor([math.log(prob) for prob in probs.data[0]]).unsqueeze(0)
 
     outputs = torch.zeros(opt.k, opt.max_len).long()
-    if opt.device == "cuda":
-        outputs = outputs.cuda()
+    outputs = move_to(outputs, opt.device)
+
     outputs[:, 0] = init_tok
     outputs[:, 1] = ix[0]
 
     e_outputs = torch.zeros(opt.k, e_output.size(-2), e_output.size(-1))
-    if opt.device == "cuda":
-        e_outputs = e_outputs.cuda()
+    e_outputs = move_to(e_outputs, opt.device)
+
     e_outputs[:, :] = e_output[0]
 
     return outputs, e_outputs, log_scores
@@ -89,7 +89,11 @@ def beam_search(src, model, SRC, TRG, opt):
             break
 
     if ind is None:
-        length = (outputs[0] == eos_tok).nonzero()[0]
+        length = (outputs[0] == eos_tok).nonzero()
+        if len(length) == 0:
+            length = opt.max_len
+        else:
+            length = length[0]
         return ' '.join([TRG.vocab.itos[tok] for tok in outputs[0][1:length]])
 
     else:

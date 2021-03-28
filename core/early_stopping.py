@@ -1,8 +1,3 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
 from typing import List, Tuple
 
 from .callbacks import Callback
@@ -45,7 +40,7 @@ class EarlyStopperAccuracy(EarlyStopper):
     """
 
     def __init__(
-        self, threshold: float, field_name: str = "acc", validation: bool = True
+            self, threshold: float, field_name: str = "acc", validation: bool = True
     ) -> None:
         """
         :param threshold: early stopping threshold for the validation set accuracy

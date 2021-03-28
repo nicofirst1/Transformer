@@ -3,13 +3,14 @@ import torch
 from torch.autograd import Variable
 from torchtext.legacy import data
 
+from core import move_to
+
 
 def nopeak_mask(size, device):
     np_mask = np.triu(np.ones((1, size, size)),
                       k=1).astype('uint8')
     np_mask = Variable(torch.from_numpy(np_mask) == 0)
-    if device == "cuda":
-        np_mask = np_mask.cuda()
+    np_mask = move_to(np_mask, device)
     return np_mask
 
 
@@ -17,8 +18,8 @@ def create_masks(src, trg, device, src_pad, trg_pad):
     src_mask = (src != src_pad).unsqueeze(-2)
 
     if trg is not None:
-        if device == "cuda":
-            trg.cuda()
+        trg= move_to(trg, device)
+
         trg_mask = (trg != trg_pad).unsqueeze(-2)
         size = trg.size(1)  # get seq_len for matrix
         np_mask = nopeak_mask(size, device)

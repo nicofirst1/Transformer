@@ -7,6 +7,7 @@ import torch.nn as nn
 from arch.Embed import Embedder, PositionalEncoder
 from arch.Layers import EncoderLayer, DecoderLayer
 from arch.Sublayers import Norm
+from core import move_to
 
 
 def get_clones(module, N):
@@ -105,14 +106,11 @@ def get_model(opt, src_vocab, trg_vocab):
     assert opt.d_model % opt.heads == 0
     assert opt.dropout < 1
 
-    model = MultiEncTransformer(src_vocab, trg_vocab, opt.d_model, opt.n_layers, opt.heads, opt.dropout,
-                                opt.encoder_num)
+    model = Transformer(src_vocab, trg_vocab, opt.d_model, opt.n_layers, opt.heads, opt.dropout)
 
     if opt.load_weights is not None:
         print("loading pretrained weights...")
         model.load_state_dict(torch.load(f'{opt.output_dir}/model_weights'))
 
-    if opt.device == "cuda":
-        model = model.cuda()
-
+    model = move_to(model, opt.device)
     return model

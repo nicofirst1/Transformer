@@ -25,7 +25,6 @@ from rich.table import Table
 from rich.text import Text
 
 from core.util import get_summary_writer
-
 from .interaction import Interaction
 
 
@@ -37,12 +36,12 @@ class Callback:
         pass
 
     def on_early_stopping(
-        self,
-        train_loss: float,
-        train_logs: Interaction,
-        epoch: int,
-        test_loss: float = None,
-        test_logs: Interaction = None,
+            self,
+            train_loss: float,
+            train_logs: Interaction,
+            epoch: int,
+            test_loss: float = None,
+            test_logs: Interaction = None,
     ):
         pass
 
@@ -59,7 +58,7 @@ class Callback:
         pass
 
     def on_batch_end(
-        self, logs: Interaction, loss: float, batch_id: int, is_training: bool = True
+            self, logs: Interaction, loss: float, batch_id: int, is_training: bool = True
     ):
         pass
 
@@ -144,11 +143,11 @@ class Checkpoint(NamedTuple):
 
 class CheckpointSaver(Callback):
     def __init__(
-        self,
-        checkpoint_path: Union[str, pathlib.Path],
-        checkpoint_freq: int = 1,
-        prefix: str = "",
-        max_checkpoints: int = sys.maxsize,
+            self,
+            checkpoint_path: Union[str, pathlib.Path],
+            checkpoint_freq: int = 1,
+            prefix: str = "",
+            max_checkpoints: int = sys.maxsize,
     ):
         """Saves a checkpoint file for training.
         :param checkpoint_path:  path to checkpoint directory, will be created if not present
@@ -224,10 +223,10 @@ class CheckpointSaver(Callback):
 
 class InteractionSaver(Callback):
     def __init__(
-        self,
-        train_epochs: Optional[List[int]] = None,
-        test_epochs: Optional[List[int]] = None,
-        folder_path: str = "",
+            self,
+            train_epochs: Optional[List[int]] = None,
+            test_epochs: Optional[List[int]] = None,
+            folder_path: str = "",
     ):
         if isinstance(train_epochs, list):
             assert all(map(lambda x: x > 0, train_epochs))
@@ -244,7 +243,7 @@ class InteractionSaver(Callback):
 
     @staticmethod
     def dump_interactions(
-        logs: Interaction, mode: str, epoch: int, dump_dir: str = "./interactions"
+            logs: Interaction, mode: str, epoch: int, dump_dir: str = "./interactions"
     ):
         dump_dir = pathlib.Path(dump_dir) / mode
         dump_dir.mkdir(exist_ok=True, parents=True)
@@ -358,11 +357,11 @@ class ProgressBarLogger(Callback):
     """
 
     def __init__(
-        self,
-        n_epochs: int,
-        train_data_len: int = 0,
-        val_data_len: int = 0,
-        use_info_table: bool = True,
+            self,
+            n_epochs: int,
+            train_data_len: int = 0,
+            val_data_len: int = 0,
+            use_info_table: bool = True,
     ):
         """
         :param n_epochs: total number of epochs
@@ -493,7 +492,7 @@ class ProgressBarLogger(Callback):
         self.progress.stop()
 
     def on_batch_end(
-        self, logs: Interaction, loss: float, batch_id: int, is_training: bool = True
+            self, logs: Interaction, loss: float, batch_id: int, is_training: bool = True
     ):
         if is_training:
             self.progress.update(self.train_p, refresh=True, advance=1)

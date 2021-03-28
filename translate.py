@@ -1,4 +1,3 @@
-import argparse
 import re
 
 import torch
@@ -6,8 +5,10 @@ from nltk.corpus import wordnet
 from torch.autograd import Variable
 
 from Beam import beam_search
-from Models import get_model
-from Process import *
+from arch.Models import get_model
+from core import move_to, init
+from data_gen.Process import load_fields
+from data_gen.Tokenize import Tokenize
 
 
 def get_synonym(word, SRC):
@@ -34,13 +35,13 @@ def translate_sentence(sentence, model, opt, SRC, TRG):
     sentence = Tokenize(opt.src_lang).tokenizer(sentence)
     sentence = SRC.preprocess(sentence)
     for tok in sentence:
-        if SRC.vocab.stoi[tok] != 0 or opt.floyd == True:
+        if SRC.vocab.stoi[tok] != 0 :
             indexed.append(SRC.vocab.stoi[tok])
         else:
             indexed.append(get_synonym(tok, SRC))
     sentence = Variable(torch.LongTensor([indexed]))
-    if opt.device == "cuda":
-        sentence = sentence.cuda()
+
+    sentence = move_to(sentence, opt.device)
 
     sentence = beam_search(sentence, model, SRC, TRG, opt)
 
@@ -59,44 +60,27 @@ def translate(opt, model, SRC, TRG):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-encoder_num', type=int, default=4)
-    parser.add_argument('-dencoder_num', type=int, default=4)
-    parser.add_argument('-load_weights', default="output", required=True)
-    parser.add_argument('-src_lang', default='en_core_web_sm')
-    parser.add_argument('-trg_lang', default='it_core_news_sm')
-    parser.add_argument('-k', type=int, default=3)
-    parser.add_argument('-max_len', type=int, default=80)
-    parser.add_argument('-d_model', type=int, default=512)
-    parser.add_argument('-n_layers', type=int, default=6)
-    parser.add_argument('-heads', type=int, default=8)
-    parser.add_argument('-dropout', type=int, default=0.1)
-    parser.add_argument('-no_cuda', action='store_true')
-    parser.add_argument('-floyd', action='store_true')
-    parser.add_argument('-output_dir', default='output')
+    opts = init()
 
-    opt = parser.parse_args()
 
-    opt.device = "cpu" if opt.no_cuda else "cuda"
+    assert opts.k > 0
+    assert opts.max_len > 10
 
-    assert opt.k > 0
-    assert opt.max_len > 10
-
-    SRC, TRG = load_fields(opt.output_dir)
-    model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
+    SRC, TRG = load_fields(opts.output_dir)
+    model = get_model(opts, len(SRC.vocab), len(TRG.vocab))
 
     while True:
-        opt.text = input("Enter a sentence to translate (type 'f' to load from file, or 'q' to quit):\n")
-        if opt.text == "q":
+        opts.text = input("Enter a sentence to translate (type 'f' to load from file, or 'q' to quit):\n")
+        if opts.text == "q":
             break
-        if opt.text == 'f':
+        if opts.text == 'f':
             fpath = input("Enter a sentence to translate (type 'f' to load from file, or 'q' to quit):\n")
             try:
-                opt.text = ' '.join(open(fpath, encoding='utf-8').read().split('\n'))
+                opts.text = ' '.join(open(fpath, encoding='utf-8').read().split('\n'))
             except:
                 print("error opening or reading text file")
                 continue
-        phrase = translate(opt, model, SRC, TRG)
+        phrase = translate(opts, model, SRC, TRG)
         print('> ' + phrase + '\n')
 
 
