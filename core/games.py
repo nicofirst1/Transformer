@@ -5,7 +5,7 @@
 
 import torch.nn as nn
 
-from Batch import create_masks
+from data_gen.Batch import create_masks
 from .interaction import LoggingStrategy
 
 

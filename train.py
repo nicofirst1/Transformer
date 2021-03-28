@@ -3,9 +3,9 @@ import argparse
 import torch
 import torch.nn.functional as F
 
-from Models import get_model
+from arch.Models import get_model
 from Optim import CosineWithRestarts
-from Process import *
+from data_gen.Process import *
 from core import Trainer, ProgressBarLogger
 from core.games import ClassicGame
 from core.util import get_len

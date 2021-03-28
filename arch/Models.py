@@ -4,9 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from Embed import Embedder, PositionalEncoder
-from Layers import EncoderLayer, DecoderLayer
-from Sublayers import Norm
+from arch.Embed import Embedder, PositionalEncoder
+from arch.Layers import EncoderLayer, DecoderLayer
+from arch.Sublayers import Norm
 
 
 def get_clones(module, N):

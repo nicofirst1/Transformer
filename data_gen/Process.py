@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from torchtext.legacy import data
 
-from Batch import MyIterator, batch_size_fn
-from Tokenize import Tokenize
+from data_gen.Batch import MyIterator, batch_size_fn
+from data_gen.Tokenize import Tokenize
 
 DF_PATH = "data/translate_transformer.csv"
 REDUCE_PERC = 0.001
