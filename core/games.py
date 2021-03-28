@@ -25,9 +25,9 @@ class ClassicGame(nn.Module):
         self.device = device
         self.loss_fn = loss
 
-        self.train_logging_strategy = LoggingStrategy().minimal()
+        self.train_logging_strategy = LoggingStrategy()
 
-        self.test_logging_strategy = LoggingStrategy().minimal()
+        self.test_logging_strategy = LoggingStrategy()
 
     def forward(self, input):
         src = input.src.transpose(0, 1)
@@ -35,6 +35,8 @@ class ClassicGame(nn.Module):
         trg_input = trg[:, :-1]
         src_mask, trg_mask = create_masks(src, trg_input, self.device, self.src_pad, self.trg_pad)
         preds = self.model(src, trg_input, src_mask, trg_mask)
+
+
         ys = trg[:, 1:].contiguous().view(-1)
         loss, aux_info = self.loss_fn(preds.view(-1, preds.size(-1)), ys, self.trg_pad)
 
@@ -42,8 +44,8 @@ class ClassicGame(nn.Module):
             self.train_logging_strategy if self.training else self.test_logging_strategy
         )
         interaction = logging_strategy.filtered_interaction(
-            input_=src,
-            labels=ys,
+            source=src,
+            labels=trg,
             aux=aux_info,
         )
 

@@ -6,17 +6,17 @@ import torch
 
 @dataclass
 class LoggingStrategy:
-    store_input_: bool = True
+    store_source: bool = True
     store_labels: bool = True
 
     def filtered_interaction(
             self,
-            input_: Optional[torch.Tensor],
+            source: Optional[torch.Tensor],
             labels: Optional[torch.Tensor],
             aux: Dict[str, torch.Tensor],
     ):
         return Interaction(
-            input_=input_ if self.store_input_ else None,
+            input_=source if self.store_source else None,
             labels=labels if self.store_labels else None,
             aux=aux,
         )
@@ -34,14 +34,14 @@ class LoggingStrategy:
 @dataclass
 class Interaction:
     # incoming data
-    input_: Optional[torch.Tensor]
+    source: Optional[torch.Tensor]
     labels: Optional[torch.Tensor]
     aux: Dict[str, torch.Tensor]
 
     @property
     def size(self):
         interaction_fields = [
-            self.input_,
+            self.source,
             self.labels,
         ]
         for t in interaction_fields:
@@ -58,7 +58,7 @@ class Interaction:
                 return x
             return x.to(*args, **kwargs)
 
-        self.input_ = _to(self.input_)
+        self.source = _to(self.source)
         self.labels = _to(self.labels)
 
         if self.aux:
@@ -88,13 +88,8 @@ class Interaction:
         def _check_cat(lst):
             if all(x is None for x in lst):
                 return None
-            # if some but not all are None: not good
-            if any(x is None for x in lst):
-                raise RuntimeError(
-                    "Appending empty and non-empty interactions logs. "
-                    "Normally this shouldn't happen!"
-                )
-            return torch.cat(lst, dim=0)
+
+            return lst
 
         assert interactions, "list must not be empty"
         assert all(len(x.aux) == len(interactions[0].aux) for x in interactions)
@@ -105,7 +100,7 @@ class Interaction:
 
         return Interaction(
             labels=_check_cat([x.labels for x in interactions]),
-            input_=_check_cat([x.input_ for x in interactions]),
+            source=_check_cat([x.source for x in interactions]),
             aux=aux,
         )
 

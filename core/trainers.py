@@ -101,7 +101,7 @@ class Trainer:
         with torch.no_grad():
             for batch in self.validation_data:
                 batch = move_to(batch, self.device)
-                optimized_loss, interaction = self.game(*batch)
+                optimized_loss, interaction = self.game(batch)
 
                 interaction = interaction.to("cpu")
                 mean_loss += optimized_loss

@@ -498,3 +498,10 @@ class ProgressBarLogger(Callback):
             self.progress.update(self.train_p, refresh=True, advance=1)
         else:
             self.progress.update(self.test_p, refresh=True, advance=1)
+
+
+class BleuScoreLogger(Callback):
+
+    def on_epoch_end(self, loss: float, logs: Interaction, epoch: int):
+        a=12
+
