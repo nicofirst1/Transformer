@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 from torchtext.legacy import data
 
-from data_gen.Batch import MyIterator, batch_size_fn
+from data_gen.Batch import MyIterator, BatchSize
 from data_gen.Tokenize import Tokenize
 
 DF_PATH = "data/translate_transformer.csv"
-REDUCE_PERC = 0.001
+REDUCE_PERC = 0.01
 file_perc = str(REDUCE_PERC).replace(".", "")
 DF_PATH_REDUCED = f"data/translate_transformer_reduced{file_perc}.csv"
 
@@ -69,12 +69,12 @@ def create_fields(opt, src_data, trg_data):
 
 
 def load_fields(output_dir):
-    with open(f"{output_dir}/SRC.pkl", "rb") as file:
-        SRC = pickle.load(file)
-    with open(f"{output_dir}/TRG.pkl", "rb") as file:
-        TRG = pickle.load(file)
+    with open(f"{output_dir}/src.pkl", "rb") as file:
+        src = pickle.load(file)
+    with open(f"{output_dir}/trg.pkl", "rb") as file:
+        trg = pickle.load(file)
 
-    return SRC, TRG
+    return src, trg
 
 
 def create_dataset(opt):
@@ -83,27 +83,29 @@ def create_dataset(opt):
     def token(x):
         return x.split(" ")
 
-    TRG = data.Field(lower=True, tokenize=token, init_token='<sos>', eos_token='<eos>')
-    SRC = data.Field(lower=True, tokenize=token)
+    trg = data.Field(lower=True, tokenize=token, init_token='<sos>', eos_token='<eos>')
+    src = data.Field(lower=True, tokenize=token)
 
-    data_fields = [('src', SRC), ('trg', TRG)]
+    data_fields = [('src', src), ('trg', trg)]
     train = data.TabularDataset(DF_PATH_REDUCED, format='csv', fields=data_fields)
+
+    batch_size= BatchSize()
 
     train_iter = MyIterator(train, batch_size=opt.batchsize, device=opt.device,
                             repeat=False, sort_key=lambda x: (len(x.src), len(x.trg)),
-                            batch_size_fn=batch_size_fn, train=True, shuffle=True)
+                            batch_size_fn=batch_size.batch_size_fn, train=True, shuffle=True)
 
     if opt.load_weights is None:
-        SRC.build_vocab(train)
-        TRG.build_vocab(train)
+        src.build_vocab(train)
+        trg.build_vocab(train)
 
-        pickle.dump(SRC, open(f'{opt.output_dir}/SRC.pkl', 'wb'))
-        pickle.dump(TRG, open(f'{opt.output_dir}/TRG.pkl', 'wb'))
+        pickle.dump(src, open(f'{opt.output_dir}/src.pkl', 'wb'))
+        pickle.dump(trg, open(f'{opt.output_dir}/trg.pkl', 'wb'))
 
-    opt.src_pad = SRC.vocab.stoi['<pad>']
-    opt.trg_pad = TRG.vocab.stoi['<pad>']
+    opt.src_pad = src.vocab.stoi['<pad>']
+    opt.trg_pad = trg.vocab.stoi['<pad>']
 
-    return train_iter, SRC, TRG
+    return train_iter, src, trg
 
 
 def data_pipeline(opt):
@@ -113,6 +115,6 @@ def data_pipeline(opt):
     if not os.path.isdir(opt.output_dir):
         os.makedirs(opt.output_dir)
 
-    train_data, SRC, TRG = create_dataset(opt)
+    train_data, src, trg = create_dataset(opt)
 
-    return train_data, SRC, TRG
+    return train_data, src, trg

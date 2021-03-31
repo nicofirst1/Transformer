@@ -16,7 +16,7 @@ class LoggingStrategy:
             aux: Dict[str, torch.Tensor],
     ):
         return Interaction(
-            input_=source if self.store_source else None,
+            source=source if self.store_source else None,
             labels=labels if self.store_labels else None,
             aux=aux,
         )

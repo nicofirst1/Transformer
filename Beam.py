@@ -7,14 +7,15 @@ from core import move_to
 from data_gen.Batch import nopeak_mask
 
 
-def init_vars(src, model, SRC, TRG, opt):
-    init_tok = TRG.vocab.stoi['<sos>']
-    src_mask = (src != SRC.vocab.stoi['<pad>']).unsqueeze(-2)
-    e_output = model.encoder(src, src_mask)
+def init_vars(sentence, model, src, trg, opt):
+    init_tok = trg.vocab.stoi['<sos>']
+    src_mask = (sentence != src.vocab.stoi['<pad>']).unsqueeze(-2)
+    e_output = model.encoder(sentence, src_mask)
 
     outputs = torch.LongTensor([[init_tok]])
 
-    trg_mask = nopeak_mask(1, opt.device)
+    trg_mask = nopeak_mask(1)
+    trg_mask = move_to(trg_mask, opt.device)
 
     outputs = move_to(outputs, opt.device)
     trg_mask = move_to(trg_mask, opt.device)
@@ -56,14 +57,15 @@ def k_best_outputs(outputs, out, log_scores, i, k):
     return outputs, log_scores
 
 
-def beam_search(src, model, SRC, TRG, opt):
-    outputs, e_outputs, log_scores = init_vars(src, model, SRC, TRG, opt)
-    eos_tok = TRG.vocab.stoi['<eos>']
-    src_mask = (src != SRC.vocab.stoi['<pad>']).unsqueeze(-2)
+def beam_search(sentence, model, src, trg, opt):
+    outputs, e_outputs, log_scores = init_vars(sentence, model, src, trg, opt)
+    eos_tok = trg.vocab.stoi['<eos>']
+    src_mask = (sentence != src.vocab.stoi['<pad>']).unsqueeze(-2)
     ind = None
     for i in range(2, opt.max_len):
 
-        trg_mask = nopeak_mask(i, opt.device)
+        trg_mask = nopeak_mask(i)
+        trg_mask = move_to(trg_mask, opt.device)
 
         decodec = model.decoder(outputs[:, :i], e_outputs, src_mask, trg_mask)
         out = model.out(decodec)
@@ -94,8 +96,8 @@ def beam_search(src, model, SRC, TRG, opt):
             length = opt.max_len
         else:
             length = length[0]
-        return ' '.join([TRG.vocab.itos[tok] for tok in outputs[0][1:length]])
+        return ' '.join([trg.vocab.itos[tok] for tok in outputs[0][1:length]])
 
     else:
         length = (outputs[ind] == eos_tok).nonzero()[0]
-        return ' '.join([TRG.vocab.itos[tok] for tok in outputs[ind][1:length]])
+        return ' '.join([trg.vocab.itos[tok] for tok in outputs[ind][1:length]])

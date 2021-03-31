@@ -186,10 +186,7 @@ class CheckpointSaver(Callback):
         optimizer_schedule_state_dict = None
         if self.trainer.optimizer_scheduler:
             optimizer_schedule_state_dict = self.trainer.optimizer_scheduler.state_dict()
-        if self.trainer.distributed_context.is_distributed:
-            game = self.trainer.game.module
-        else:
-            game = self.trainer.game
+        game = self.trainer.game
         return Checkpoint(
             epoch=self.epoch_counter,
             model_state_dict=game.state_dict(),

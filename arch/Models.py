@@ -1,4 +1,6 @@
 import copy
+import os
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -8,6 +10,7 @@ from arch.Embed import Embedder, PositionalEncoder
 from arch.Layers import EncoderLayer, DecoderLayer
 from arch.Sublayers import Norm
 from core import move_to
+from core.util import console
 
 
 def get_clones(module, N):
@@ -102,15 +105,38 @@ class MultiDecTransformer(nn.Module):
         return output
 
 
-def get_model(opt, src_vocab, trg_vocab):
+def load_weights(path, model):
+    latest_file, latest_time = None, None
+
+    if isinstance(path, str):
+        path = Path(path)
+
+    for file in path.glob("*.tar"):
+        creation_time = os.stat(file).st_ctime
+        if latest_time is None or creation_time > latest_time:
+            latest_file, latest_time = file, creation_time
+
+    if latest_file is not None:
+        console.log(f"Loading trainer state from {latest_file}")
+        checkpoint = torch.load(latest_file)
+        model_state = checkpoint.model_state_dict
+        model_state = {k.replace("model.", ""): v for k, v in model_state.items()}
+
+        model.load_state_dict(model_state)
+
+        console.log(f"Model trained with {checkpoint.epoch} epochs loaded!")
+    else:
+        console.log(f"Could not load model from {path}")
+
+
+def get_model(opt, src_vocab, trg_vocab, weight_path=None):
     assert opt.d_model % opt.heads == 0
     assert opt.dropout < 1
 
     model = Transformer(src_vocab, trg_vocab, opt.d_model, opt.n_layers, opt.heads, opt.dropout)
 
-    if opt.load_weights is not None:
-        print("loading pretrained weights...")
-        model.load_state_dict(torch.load(f'{opt.output_dir}/model_weights'))
+    if weight_path is not None:
+        load_weights(weight_path, model)
 
     model = move_to(model, opt.device)
     return model

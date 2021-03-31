@@ -1,16 +1,12 @@
-import argparse
-
 import torch
 import torch.nn.functional as F
-import torchtext
 
 from arch.Models import get_model
-from Optim import CosineWithRestarts
-from core.callbacks import BleuScoreLogger
-from data_gen.Process import *
 from core import Trainer, ProgressBarLogger
+from core.callbacks import BleuScoreLogger, CheckpointSaver
 from core.games import ClassicGame
-from core.util import get_len, init
+from core.util import init, console
+from data_gen.Process import *
 
 
 def loss_fn(preds, lables, trg_pad):
@@ -18,27 +14,16 @@ def loss_fn(preds, lables, trg_pad):
     return loss, {}
 
 
+
 def main():
-    opts=init()
+    opts = init()
 
-    print(opts)
-
-    opts.device = "cpu" if opts.no_cuda else "cuda"
-    if opts.device == "cuda":
-        assert torch.cuda.is_available()
-
-    opts.device=torch.device(opts.device)
+    console.log(sorted(vars(opts).items()))
 
     train_data, SRC, TRG = data_pipeline(opts)
     model = get_model(opts, len(SRC.vocab), len(TRG.vocab))
 
-
     optimizer = torch.optim.Adam(model.parameters(), lr=opts.lr, betas=(0.9, 0.98), eps=1e-9)
-    if opts.SGDR == True:
-        opts.sched = CosineWithRestarts(opts.optimizer, T_max=get_len(train_data))
-    if opts.checkpoint > 0:
-        print(
-            "model weights will be saved every %d minutes and at end of epoch to directory weights/" % (opts.checkpoint))
 
     game = ClassicGame(opts.src_pad,
                        opts.trg_pad,
@@ -52,7 +37,9 @@ def main():
                       validation_data=None,
                       device=opts.device,
                       callbacks=[
-                          ProgressBarLogger(n_epochs=opts.epochs, train_data_len=get_len(train_data)),
+                          ProgressBarLogger(n_epochs=opts.epochs, train_data_len=len(train_data)),
+                          CheckpointSaver(checkpoint_path=opts.output_dir, checkpoint_freq=opts.checkpoint_freq,
+                                          prefix="model_weights", max_checkpoints=3),
                           BleuScoreLogger(),
                       ],
                       opts=opts)

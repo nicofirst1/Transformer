@@ -11,10 +11,13 @@ from typing import Any, List, Optional
 
 import numpy as np
 import torch
+from rich.console import Console
 
 common_opts = None
 optimizer = None
 summary_writer = None
+
+console=Console()
 
 
 def get_len(train):
@@ -39,7 +42,7 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
     arg_parser.add_argument(
         "--checkpoint_freq",
         type=int,
-        default=0,
+        default=1,
         help="How often the checkpoints are saved",
     )
     arg_parser.add_argument(
@@ -48,12 +51,7 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
         default=1,
         help="The validation would be run every `validation_freq` epochs",
     )
-    arg_parser.add_argument(
-        "--n_epochs",
-        type=int,
-        default=10,
-        help="Number of epochs to train (default: 10)",
-    )
+
     arg_parser.add_argument(
         "--load_from_checkpoint",
         type=str,
@@ -65,13 +63,7 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
     arg_parser.add_argument(
         "--no_cuda", default=False, help="disable cuda", action="store_true"
     )
-    # dataset
-    arg_parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=32,
-        help="Input batch size for training (default: 32)",
-    )
+
 
     # optimizer
     arg_parser.add_argument(
@@ -80,22 +72,12 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
         default="adam",
         help="Optimizer to use [adam, sgd, adagrad] (default: adam)",
     )
-    arg_parser.add_argument(
-        "--lr", type=float, default=1e-2, help="Learning rate (default: 1e-2)"
-    )
+
     arg_parser.add_argument(
         "--update_freq",
         type=int,
         default=1,
         help="Learnable weights are updated every update_freq batches (default: 1)",
-    )
-
-    # Channel parameters
-    arg_parser.add_argument(
-        "--vocab_size",
-        type=int,
-        default=10,
-        help="Number of symbols (terms) in the vocabulary (default: 10)",
     )
 
 
@@ -118,15 +100,14 @@ def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.Argumen
     parser.add_argument('-trg_data', default='data/europarl-v7.it-en.it')
     parser.add_argument('-src_lang', default='en_core_web_sm')
     parser.add_argument('-trg_lang', default='it_core_news_sm')
-    parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-SGDR', action='store_true')
-    parser.add_argument('-epochs', type=int, default=20)
+
+    parser.add_argument('-epochs', type=int, default=200)
     parser.add_argument('-d_model', type=int, default=512)
     parser.add_argument('-n_layers', type=int, default=6)
     parser.add_argument('-heads', type=int, default=8)
     parser.add_argument('-dropout', type=int, default=0.1)
-    parser.add_argument('-batchsize', type=int, default=256)
-    parser.add_argument('-printevery', type=int, default=10)
+    parser.add_argument('-batchsize', type=int, default=2048)
     parser.add_argument('-lr', type=int, default=0.0001)
     parser.add_argument('-load_weights')
     parser.add_argument('-create_valset', action='store_true')
