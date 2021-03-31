@@ -8,7 +8,6 @@ from torchtext.legacy import data
 from data_gen.Batch import MyIterator, BatchSize
 from data_gen.Tokenize import Tokenize
 
-DF_PATH = "data/translate_transformer.csv"
 REDUCE_PERC = 0.01
 file_perc = str(REDUCE_PERC).replace(".", "")
 DF_PATH_REDUCED = f"data/translate_transformer_reduced{file_perc}.csv"
@@ -32,40 +31,40 @@ def read_data(src_data_path, trg_data_path):
     return src_data, trg_data
 
 
-def create_fields(opt, src_data, trg_data):
-    if not os.path.exists(DF_PATH):
+def create_fields(opts, src_data, trg_data):
+    if not os.path.exists(opts.df_path):
 
         spacy_langs = ['en_core_web_sm', 'fr_core_news_sm', 'de', 'es', 'pt', 'it_core_news_sm', 'nl']
-        if opt.src_lang not in spacy_langs:
-            print('invalid src language: ' + opt.src_lang + 'supported languages : ' + spacy_langs)
-        if opt.trg_lang not in spacy_langs:
-            print('invalid trg language: ' + opt.trg_lang + 'supported languages : ' + spacy_langs)
+        if opts.src_lang not in spacy_langs:
+            print('invalid src language: ' + opts.src_lang + 'supported languages : ' + spacy_langs)
+        if opts.trg_lang not in spacy_langs:
+            print('invalid trg language: ' + opts.trg_lang + 'supported languages : ' + spacy_langs)
 
         print("loading spacy tokenizers...")
 
         raw_data = {'src': [line for line in src_data], 'trg': [line for line in trg_data]}
         df = pd.DataFrame(raw_data, columns=["src", "trg"])
 
-        mask = (df['src'].str.count(' ') < opt.max_strlen) & (df['trg'].str.count(' ') < opt.max_strlen)
+        mask = (df['src'].str.count(' ') < opts.max_strlen) & (df['trg'].str.count(' ') < opts.max_strlen)
         df = df.loc[mask]
 
-        t_src = Tokenize(opt.src_lang)
-        t_trg = Tokenize(opt.trg_lang)
+        t_src = Tokenize(opts.src_lang)
+        t_trg = Tokenize(opts.trg_lang)
 
         df['src'] = df['src'].apply(lambda x: t_src.tokenizer(x))
         df['trg'] = df['trg'].apply(lambda x: t_trg.tokenizer(x))
 
-        df.to_csv(DF_PATH, index=False)
-    elif not os.path.exists(DF_PATH_REDUCED):
+        df.to_csv(opts.df_path, index=False)
+    elif not os.path.exists(opts.df_path_reduced):
 
         print(f"Cannot find {DF_PATH_REDUCED}, creating it...")
 
-        df = pd.read_csv(DF_PATH)
-        remove_n = len(df) * (1 - REDUCE_PERC)
+        df = pd.read_csv(opts.df_path)
+        remove_n = len(df) * (1 - opts.reduce_perc)
         remove_n = int(remove_n)
         drop_indices = np.random.choice(df.index, remove_n, replace=False)
         df_subset = df.drop(drop_indices)
-        df_subset.to_csv(DF_PATH_REDUCED, index=False)
+        df_subset.to_csv(opts.df_path_reduced, index=False)
 
 
 def load_fields(output_dir):

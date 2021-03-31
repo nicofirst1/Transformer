@@ -17,7 +17,7 @@ common_opts = None
 optimizer = None
 summary_writer = None
 
-console=Console()
+console = Console()
 
 
 def get_len(train):
@@ -64,7 +64,6 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--no_cuda", default=False, help="disable cuda", action="store_true"
     )
 
-
     # optimizer
     arg_parser.add_argument(
         "--optimizer",
@@ -80,7 +79,6 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
         help="Learnable weights are updated every update_freq batches (default: 1)",
     )
 
-
     # Setting up tensorboard
     arg_parser.add_argument(
         "--tensorboard", default=False, help="enable tensorboard", action="store_true"
@@ -93,6 +91,10 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
 
 
 def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser.add_argument('-df_path', type=str, default="data/translate_transformer.csv")
+    parser.add_argument('-df_path_reduced', type=str, default="")
+    parser.add_argument('-reduce_perc', type=float, default=0.01)
+
     parser.add_argument('-validation_freq', type=int, default=1)
     parser.add_argument('-encoder_num', type=int, default=4)
     parser.add_argument('-dencoder_num', type=int, default=4)
@@ -129,6 +131,13 @@ def _get_params(
     # just to avoid confusion and be consistent
     args.no_cuda = not args.cuda
     args.device = torch.device("cuda" if args.cuda else "cpu")
+
+    if args.df_path is not None:
+        file_perc = str(args.reduce_perc).replace(".", "")
+        file_path = args.df_path.split(".")
+        file_path.insert(-1, f"_reduced{file_perc}")
+        file_path = "".join(file_path)
+        args.df_path_reduced = file_path
 
     return args
 
