@@ -55,14 +55,14 @@ class MultiHeadAttention(nn.Module):
         self.out = nn.Linear(d_model, d_model)
 
     def forward(self, q, k, v, mask=None):
-        bs = q.size(0)
+        batch_size = q.size(0)
 
         # perform linear operation and split into N heads
-        k = self.k_linear(k).view(bs, -1, self.h, self.d_k)
-        q = self.q_linear(q).view(bs, -1, self.h, self.d_k)
-        v = self.v_linear(v).view(bs, -1, self.h, self.d_k)
+        k = self.k_linear(k).view(batch_size, -1, self.h, self.d_k)
+        q = self.q_linear(q).view(batch_size, -1, self.h, self.d_k)
+        v = self.v_linear(v).view(batch_size, -1, self.h, self.d_k)
 
-        # transpose to get dimensions bs * N * sl * d_model
+        # transpose to get dimensions batch_size * N * sl * d_model
         k = k.transpose(1, 2)
         q = q.transpose(1, 2)
         v = v.transpose(1, 2)
@@ -71,7 +71,7 @@ class MultiHeadAttention(nn.Module):
         scores = attention(q, k, v, self.d_k, mask, self.dropout)
         # concatenate heads and put through final linear layer
         concat = scores.transpose(1, 2).contiguous() \
-            .view(bs, -1, self.d_model)
+            .view(batch_size, -1, self.d_model)
         output = self.out(concat)
 
         return output

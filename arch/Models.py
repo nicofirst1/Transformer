@@ -18,35 +18,35 @@ def get_clones(module, N):
 
 
 class Encoder(nn.Module):
-    def __init__(self, vocab_size, d_model, N, heads, dropout):
+    def __init__(self, vocab_size, d_model, n_layers, heads, dropout):
         super().__init__()
-        self.N = N
+        self.n_layers = n_layers
         self.embed = Embedder(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model, dropout=dropout)
-        self.layers = get_clones(EncoderLayer(d_model, heads, dropout), N)
+        self.layers = get_clones(EncoderLayer(d_model, heads, dropout), n_layers)
         self.norm = Norm(d_model)
 
     def forward(self, src, mask):
         x = self.embed(src)
         x = self.pe(x)
-        for i in range(self.N):
+        for i in range(self.n_layers):
             x = self.layers[i](x, mask)
         return self.norm(x)
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, d_model, N, heads, dropout):
+    def __init__(self, vocab_size, d_model, n_layers, heads, dropout):
         super().__init__()
-        self.N = N
+        self.n_layers = n_layers
         self.embed = Embedder(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model, dropout=dropout)
-        self.layers = get_clones(DecoderLayer(d_model, heads, dropout), N)
+        self.layers = get_clones(DecoderLayer(d_model, heads, dropout), n_layers)
         self.norm = Norm(d_model)
 
     def forward(self, trg, e_outputs, src_mask, trg_mask):
         x = self.embed(trg)
         x = self.pe(x)
-        for i in range(self.N):
+        for i in range(self.n_layers):
             x = self.layers[i](x, e_outputs, src_mask, trg_mask)
         return self.norm(x)
 
@@ -67,12 +67,12 @@ class Transformer(nn.Module):
 
 
 class MultiEncTransformer(nn.Module):
-    def __init__(self, src_vocab, trg_vocab, d_model, N, heads, dropout, encoder_num):
+    def __init__(self, src_vocab, trg_vocab, d_model, n_layers, heads, dropout, encoder_num):
         super().__init__()
         self.random_state = np.random.RandomState(42)
 
-        self.encoders = [Encoder(src_vocab, d_model, N, heads, dropout) for _ in range(encoder_num)]
-        self.decoder = Decoder(trg_vocab, d_model, N, heads, dropout)
+        self.encoders = [Encoder(src_vocab, d_model, n_layers, heads, dropout) for _ in range(encoder_num)]
+        self.decoder = Decoder(trg_vocab, d_model, n_layers, heads, dropout)
         self.out = nn.Linear(d_model, trg_vocab)
 
     def forward(self, src, trg, src_mask, trg_mask):
@@ -130,10 +130,10 @@ def load_weights(path, model):
 
 
 def get_model(opt, src_vocab, trg_vocab, weight_path=None):
-    assert opt.d_model % opt.heads == 0
+    assert opt.model_dim % opt.heads == 0
     assert opt.dropout < 1
 
-    model = Transformer(src_vocab, trg_vocab, opt.d_model, opt.n_layers, opt.heads, opt.dropout)
+    model = Transformer(src_vocab, trg_vocab, opt.model_dim, opt.n_layers, opt.heads, opt.dropout)
 
     if weight_path is not None:
         load_weights(weight_path, model)

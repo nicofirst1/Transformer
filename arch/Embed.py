@@ -18,7 +18,7 @@ class Embedder(nn.Module):
 class PositionalEncoder(nn.Module):
     def __init__(self, d_model, max_seq_len=200, dropout=0.1):
         super().__init__()
-        self.d_model = d_model
+        self.model_dim = d_model
         self.dropout = nn.Dropout(dropout)
         # create constant 'pe' matrix with values dependant on 
         # pos and i
@@ -34,7 +34,7 @@ class PositionalEncoder(nn.Module):
 
     def forward(self, x):
         # make embeddings relatively larger
-        x = x * math.sqrt(self.d_model)
+        x = x * math.sqrt(self.model_dim)
         # add constant to embedding
         seq_len = x.size(1)
         pe = Variable(self.pe[:, :seq_len], requires_grad=False)
