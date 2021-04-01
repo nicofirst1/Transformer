@@ -135,7 +135,7 @@ def _get_params(
     if args.df_path is not None:
         file_perc = str(args.reduce_perc).replace(".", "")
         file_path = args.df_path.split(".")
-        file_path.insert(-1, f"_reduced{file_perc}")
+        file_path.insert(-1, f"_reduced{file_perc}.")
         file_path = "".join(file_path)
         args.df_path_reduced = file_path
 
