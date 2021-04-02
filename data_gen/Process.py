@@ -97,12 +97,12 @@ def create_dataset(opts):
                             repeat=False, sort_key=lambda x: (len(x.src), len(x.trg)),
                             batch_size_fn=batch_size.batch_size_fn, train=True, shuffle=True)
 
-    if opts.load_weights is None:
-        src.build_vocab(train)
-        trg.build_vocab(train)
 
-        pickle.dump(src, open(f'{opts.output_dir}/src.pkl', 'wb'))
-        pickle.dump(trg, open(f'{opts.output_dir}/trg.pkl', 'wb'))
+    src.build_vocab(train)
+    trg.build_vocab(train)
+
+    pickle.dump(src, open(f'{opts.output_dir}/src.pkl', 'wb'))
+    pickle.dump(trg, open(f'{opts.output_dir}/trg.pkl', 'wb'))
 
     opts.src_pad = src.vocab.stoi['<pad>']
     opts.trg_pad = trg.vocab.stoi['<pad>']

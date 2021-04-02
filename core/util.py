@@ -112,7 +112,7 @@ def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.Argumen
     parser.add_argument('-dropout', type=int, default=0.1)
     parser.add_argument('-batchsize', type=int, default=2048)
     parser.add_argument('-lr', type=int, default=0.0001)
-    parser.add_argument('-load_weights')
+    parser.add_argument('-load_weights', default=True)
     parser.add_argument('-create_valset', action='store_true')
     parser.add_argument('-max_strlen', type=int, default=80)
     parser.add_argument('-checkpoint', type=int, default=0)

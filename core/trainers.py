@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+from pathlib import Path
 from typing import List, Optional
 
 try:
@@ -75,12 +76,6 @@ class Trainer:
         self.callbacks = callbacks if callbacks else []
         self.grad_norm = grad_norm
         self.aggregate_interaction_logs = aggregate_interaction_logs
-
-        if common_opts.load_weights is not None:
-            print(
-                f"# Initializing model, trainer, and optimizer from {common_opts.load_weights}"
-            )
-            self.load_from_checkpoint(common_opts.load_weights)
 
         if self.callbacks is None:
             self.callbacks = [
@@ -225,6 +220,9 @@ class Trainer:
 
     def load_from_latest(self, path):
         latest_file, latest_time = None, None
+
+        if isinstance(path, str):
+            path=Path(path)
 
         for file in path.glob("*.tar"):
             creation_time = os.stat(file).st_ctime
