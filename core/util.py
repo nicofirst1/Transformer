@@ -96,16 +96,17 @@ def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.Argumen
     parser.add_argument('-reduce_perc', type=float, default=0.01)
 
     parser.add_argument('-validation_freq', type=int, default=1)
-    parser.add_argument('-encoder_num', type=int, default=4)
-    parser.add_argument('-dencoder_num', type=int, default=4)
     parser.add_argument('-src_data', default='data/europarl-v7.it-en.en')
     parser.add_argument('-trg_data', default='data/europarl-v7.it-en.it')
     parser.add_argument('-src_lang', default='en_core_web_sm')
     parser.add_argument('-trg_lang', default='it_core_news_sm')
-    parser.add_argument('-SGDR', action='store_true')
+
+    parser.add_argument('-encod_num', type=int, default=4)
+    parser.add_argument('-dencod_num', type=int, default=4)
+    parser.add_argument('-model', type=str, choices=["transformer","multiencoder","multidecoder"], default="transformer")
 
     parser.add_argument('-epochs', type=int, default=200)
-    parser.add_argument('-d_model', type=int, default=512)
+    parser.add_argument('-model_dim', type=int, default=512)
     parser.add_argument('-n_layers', type=int, default=6)
     parser.add_argument('-heads', type=int, default=8)
     parser.add_argument('-dropout', type=int, default=0.1)

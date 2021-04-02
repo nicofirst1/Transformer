@@ -8,22 +8,25 @@ import torch
 class LoggingStrategy:
     store_source: bool = True
     store_labels: bool = True
+    store_preds: bool = True
 
     def filtered_interaction(
             self,
             source: Optional[torch.Tensor],
+            preds: Optional[torch.Tensor],
             labels: Optional[torch.Tensor],
             aux: Dict[str, torch.Tensor],
     ):
         return Interaction(
             source=source if self.store_source else None,
+            preds=preds if self.store_preds else None,
             labels=labels if self.store_labels else None,
             aux=aux,
         )
 
     @classmethod
     def minimal(cls):
-        args = [False] * 2
+        args = [False] * 3
         return cls(*args)
 
     @classmethod
@@ -35,6 +38,7 @@ class LoggingStrategy:
 class Interaction:
     # incoming data
     source: Optional[torch.Tensor]
+    preds: Optional[torch.Tensor]
     labels: Optional[torch.Tensor]
     aux: Dict[str, torch.Tensor]
 
@@ -42,6 +46,7 @@ class Interaction:
     def size(self):
         interaction_fields = [
             self.source,
+            self.preds,
             self.labels,
         ]
         for t in interaction_fields:
@@ -59,6 +64,7 @@ class Interaction:
             return x.to(*args, **kwargs)
 
         self.source = _to(self.source)
+        self.preds = _to(self.preds)
         self.labels = _to(self.labels)
 
         if self.aux:
@@ -100,6 +106,7 @@ class Interaction:
 
         return Interaction(
             labels=_check_cat([x.labels for x in interactions]),
+            preds=_check_cat([x.preds for x in interactions]),
             source=_check_cat([x.source for x in interactions]),
             aux=aux,
         )

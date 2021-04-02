@@ -57,7 +57,7 @@ class MyIterator(data.Iterator):
                 self.batches.append(sorted(b, key=self.sort_key))
 
     def __len__(self):
-        return math.ceil(len(self.data()) / self.batch_size * self.multiplier)
+        return math.floor(len(self.data()) / self.batch_size )* self.multiplier
 
 
 global max_src_in_batch, max_tgt_in_batch

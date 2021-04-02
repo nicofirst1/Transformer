@@ -11,6 +11,7 @@ import sys
 from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Union
 
+import numpy as np
 import torch
 from rich.columns import Columns
 from rich.console import RenderableType
@@ -497,8 +498,41 @@ class ProgressBarLogger(Callback):
             self.progress.update(self.test_p, refresh=True, advance=1)
 
 
-class BleuScoreLogger(Callback):
+class CustomMetrics(Callback):
 
     def on_epoch_end(self, loss: float, logs: Interaction, epoch: int):
-        a=12
+        preds = logs.preds
+        labels = logs.labels
+        accuracy = []
+        intersection = []
 
+        for idx in range(len(preds)):
+            p = preds[idx]
+            l = labels[idx]
+
+            accuracy.append(self.get_accuracy(l, p))
+            intersection.append(self.get_common(l, p))
+
+        accuracy = torch.as_tensor(accuracy)
+        intersection = torch.as_tensor(intersection)
+
+        logs.aux['intersection'] = intersection
+        logs.aux['accuracy'] = accuracy
+
+    @staticmethod
+    def get_common(l, p):
+        common = len(np.intersect1d(p, l))
+
+        max_size = max(l.shape[1], p.shape[1]) * p.shape[0]
+        return common / max_size
+
+    @staticmethod
+    def get_accuracy(l, p):
+        min_size = min(l.shape[1], p.shape[1])
+
+        l = l[:, :min_size]
+        p = p[:, :min_size]
+
+        correct = (l == p).sum() / (l.shape[0] * l.shape[1])
+
+        return correct

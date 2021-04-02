@@ -75,11 +75,13 @@ class MultiEncTransformer(nn.Module):
         self.decoder = Decoder(trg_vocab, d_model, n_layers, heads, dropout)
         self.out = nn.Linear(d_model, trg_vocab)
 
-    def forward(self, src, trg, src_mask, trg_mask):
+    @property
+    def encoder(self):
         encoder = self.random_state.choice(self.encoders)
-        encoder = encoder.cuda()
+        return encoder.cuda()
 
-        e_outputs = encoder(src, src_mask)
+    def forward(self, src, trg, src_mask, trg_mask):
+        e_outputs = self.encoder(src, src_mask)
         # print("DECODER")
         d_output = self.decoder(trg, e_outputs, src_mask, trg_mask)
         output = self.out(d_output)
@@ -87,25 +89,28 @@ class MultiEncTransformer(nn.Module):
 
 
 class MultiDecTransformer(nn.Module):
-    def __init__(self, src_vocab, trg_vocab, d_model, N, heads, dropout, decoder_num):
+    def __init__(self, src_vocab, trg_vocab, d_model, n_layers, heads, dropout, decoder_num):
         super().__init__()
         self.random_state = np.random.RandomState(42)
 
-        self.encoder = Encoder(src_vocab, d_model, N, heads, dropout)
-        self.decoders = [Decoder(src_vocab, d_model, N, heads, dropout) for _ in range(decoder_num)]
+        self.encoder = Encoder(src_vocab, d_model, n_layers, heads, dropout)
+        self.decoders = [Decoder(src_vocab, d_model, n_layers, heads, dropout) for _ in range(decoder_num)]
         self.out = nn.Linear(d_model, trg_vocab)
+
+    @property
+    def decoder(self):
+        decoder = self.random_state.choice(self.decoders)
+        return decoder.cuda()
 
     def forward(self, src, trg, src_mask, trg_mask):
         e_outputs = self.encoder(src, src_mask)
         # print("DECODER")
-        decoder = self.random_state.choice(self.decoders)
-        decoder = decoder.cuda()
-        d_output = decoder(trg, e_outputs, src_mask, trg_mask)
+        d_output = self.decoder(trg, e_outputs, src_mask, trg_mask)
         output = self.out(d_output)
         return output
 
 
-def load_weights(path, model):
+def load_weights(path, model) -> int:
     latest_file, latest_time = None, None
 
     if isinstance(path, str):
@@ -123,20 +128,31 @@ def load_weights(path, model):
         model_state = {k.replace("model.", ""): v for k, v in model_state.items()}
 
         model.load_state_dict(model_state)
+        epoch = checkpoint.epoch
+        console.log(f"Model trained with {epoch} epochs loaded!")
 
-        console.log(f"Model trained with {checkpoint.epoch} epochs loaded!")
     else:
         console.log(f"Could not load model from {path}")
 
 
-def get_model(opt, src_vocab, trg_vocab, weight_path=None):
-    assert opt.model_dim % opt.heads == 0
-    assert opt.dropout < 1
+def get_model(opts, src_vocab, trg_vocab, weight_path=None):
+    assert opts.model_dim % opts.heads == 0
+    assert opts.dropout < 1
 
-    model = Transformer(src_vocab, trg_vocab, opt.model_dim, opt.n_layers, opt.heads, opt.dropout)
+    if opts.model == "transformer":
 
+        model = Transformer(src_vocab, trg_vocab, opts.model_dim, opts.n_layers, opts.heads, opts.dropout)
+    elif opts.model == "multiencoder":
+        model = MultiEncTransformer(src_vocab, trg_vocab, opts.model_dim, opts.n_layers, opts.heads, opts.dropout,
+                                    opts.encod_num)
+    elif opts.model == "multidencoder":
+        model = MultiEncTransformer(src_vocab, trg_vocab, opts.model_dim, opts.n_layers, opts.heads, opts.dropout,
+                                    opts.decod_num)
     if weight_path is not None:
-        load_weights(weight_path, model)
+        try:
+            load_weights(weight_path, model)
+        except:
+            console.log("Could not load weights")
 
-    model = move_to(model, opt.device)
+    model = move_to(model, opts.device)
     return model

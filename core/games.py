@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 from data_gen.Batch import create_masks
@@ -43,9 +44,14 @@ class ClassicGame(nn.Module):
         logging_strategy = (
             self.train_logging_strategy if self.training else self.test_logging_strategy
         )
+
+        preds = torch.argmax(torch.softmax(preds, dim=-1), dim=-1)
+
+
         interaction = logging_strategy.filtered_interaction(
             source=src,
             labels=trg,
+            preds=preds,
             aux=aux_info,
         )
 

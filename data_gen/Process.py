@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from torchtext.legacy import data
 
+from core.util import console
 from data_gen.Batch import MyIterator, BatchSize
 from data_gen.Tokenize import Tokenize
 
@@ -57,7 +58,7 @@ def create_fields(opts, src_data, trg_data):
         df.to_csv(opts.df_path, index=False)
     elif not os.path.exists(opts.df_path_reduced):
 
-        print(f"Cannot find {DF_PATH_REDUCED}, creating it...")
+        print(f"Cannot find {opts.df_path_reduced}, creating it...")
 
         df = pd.read_csv(opts.df_path)
         remove_n = len(df) * (1 - opts.reduce_perc)
@@ -65,6 +66,8 @@ def create_fields(opts, src_data, trg_data):
         drop_indices = np.random.choice(df.index, remove_n, replace=False)
         df_subset = df.drop(drop_indices)
         df_subset.to_csv(opts.df_path_reduced, index=False)
+    else:
+        console.log(f"Dataset at {opts.df_path_reduced} already created!")
 
 
 def load_fields(output_dir):
@@ -76,8 +79,8 @@ def load_fields(output_dir):
     return src, trg
 
 
-def create_dataset(opt):
-    print("creating dataset and iterator... ")
+def create_dataset(opts):
+    console.log("Loading iterator...")
 
     def token(x):
         return x.split(" ")
@@ -86,23 +89,23 @@ def create_dataset(opt):
     src = data.Field(lower=True, tokenize=token)
 
     data_fields = [('src', src), ('trg', trg)]
-    train = data.TabularDataset(DF_PATH_REDUCED, format='csv', fields=data_fields)
+    train = data.TabularDataset(opts.df_path_reduced, format='csv', fields=data_fields)
 
     batch_size= BatchSize()
 
-    train_iter = MyIterator(train, batch_size=opt.batchsize, device=opt.device,
+    train_iter = MyIterator(train, batch_size=opts.batchsize, device=opts.device,
                             repeat=False, sort_key=lambda x: (len(x.src), len(x.trg)),
                             batch_size_fn=batch_size.batch_size_fn, train=True, shuffle=True)
 
-    if opt.load_weights is None:
+    if opts.load_weights is None:
         src.build_vocab(train)
         trg.build_vocab(train)
 
-        pickle.dump(src, open(f'{opt.output_dir}/src.pkl', 'wb'))
-        pickle.dump(trg, open(f'{opt.output_dir}/trg.pkl', 'wb'))
+        pickle.dump(src, open(f'{opts.output_dir}/src.pkl', 'wb'))
+        pickle.dump(trg, open(f'{opts.output_dir}/trg.pkl', 'wb'))
 
-    opt.src_pad = src.vocab.stoi['<pad>']
-    opt.trg_pad = trg.vocab.stoi['<pad>']
+    opts.src_pad = src.vocab.stoi['<pad>']
+    opts.trg_pad = trg.vocab.stoi['<pad>']
 
     return train_iter, src, trg
 
