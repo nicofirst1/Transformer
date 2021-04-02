@@ -222,7 +222,7 @@ class Trainer:
         latest_file, latest_time = None, None
 
         if isinstance(path, str):
-            path=Path(path)
+            path = Path(path)
 
         for file in path.glob("*.tar"):
             creation_time = os.stat(file).st_ctime

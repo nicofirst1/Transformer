@@ -103,7 +103,8 @@ def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.Argumen
 
     parser.add_argument('-encod_num', type=int, default=4)
     parser.add_argument('-dencod_num', type=int, default=4)
-    parser.add_argument('-model', type=str, choices=["transformer","multiencoder","multidecoder"], default="transformer")
+    parser.add_argument('-model', type=str, choices=["transformer", "multiencoder", "multidecoder"],
+                        default="transformer")
 
     parser.add_argument('-epochs', type=int, default=200)
     parser.add_argument('-model_dim', type=int, default=512)

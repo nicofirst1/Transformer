@@ -37,7 +37,6 @@ class ClassicGame(nn.Module):
         src_mask, trg_mask = create_masks(src, trg_input, self.device, self.src_pad, self.trg_pad)
         preds = self.model(src, trg_input, src_mask, trg_mask)
 
-
         ys = trg[:, 1:].contiguous().view(-1)
         loss, aux_info = self.loss_fn(preds.view(-1, preds.size(-1)), ys, self.trg_pad)
 
@@ -46,7 +45,6 @@ class ClassicGame(nn.Module):
         )
 
         preds = torch.argmax(torch.softmax(preds, dim=-1), dim=-1)
-
 
         interaction = logging_strategy.filtered_interaction(
             source=src,

@@ -46,9 +46,7 @@ def main():
     if opts.load_weights:
         trainer.load_from_latest(opts.output_dir)
 
-
     trainer.train(opts.epochs)
-
 
 
 if __name__ == "__main__":

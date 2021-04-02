@@ -91,12 +91,11 @@ def create_dataset(opts):
     data_fields = [('src', src), ('trg', trg)]
     train = data.TabularDataset(opts.df_path_reduced, format='csv', fields=data_fields)
 
-    batch_size= BatchSize()
+    batch_size = BatchSize()
 
     train_iter = MyIterator(train, batch_size=opts.batchsize, device=opts.device,
                             repeat=False, sort_key=lambda x: (len(x.src), len(x.trg)),
                             batch_size_fn=batch_size.batch_size_fn, train=True, shuffle=True)
-
 
     src.build_vocab(train)
     trg.build_vocab(train)
