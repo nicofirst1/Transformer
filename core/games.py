@@ -31,8 +31,8 @@ class ClassicGame(nn.Module):
         self.test_logging_strategy = LoggingStrategy()
 
     def forward(self, input):
-        src = input.src.transpose(0, 1)
-        trg = input.trg.transpose(0, 1)
+        src = input[0].transpose(0, 1)
+        trg = input[0].transpose(0, 1)
         trg_input = trg[:, :-1]
         src_mask, trg_mask = create_masks(src, trg_input, self.device, self.src_pad, self.trg_pad)
         preds = self.model(src, trg_input, src_mask, trg_mask)

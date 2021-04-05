@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torchtext
+from rich.progress import track
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from torchtext.data import get_tokenizer
@@ -102,8 +103,8 @@ def load_vocab(opts, train_data):
             src_counter.update(src_tok(line))
             trg_counter.update(trg_tok(line))
 
-        src_vocab = Vocab(src_counter, min_freq=1, specials=['<unk>', '<pad>', '<bos>', '<eos>'])
-        trg_vocab = Vocab(trg_counter, min_freq=1, specials=['<unk>', '<pad>', '<bos>', '<eos>'])
+        src_vocab = Vocab(src_counter, specials=['<unk>', '<pad>', '<bos>', '<eos>'])
+        trg_vocab = Vocab(trg_counter,  specials=['<unk>', '<pad>', '<bos>', '<eos>'])
 
         pickle.dump(src_vocab, open(f'{opts.output_dir}/src.pkl', 'wb'))
         pickle.dump(trg_vocab, open(f'{opts.output_dir}/trg.pkl', 'wb'))
@@ -112,30 +113,29 @@ def load_vocab(opts, train_data):
     return src_vocab, trg_vocab
 
 
-def preprocess_dataset(dataset, src_vocab, trg_vocab):
+def preprocess_dataset(opts,dataset, src_vocab, trg_vocab):
     data = list(dataset._iterator)
     BOS_IDX = src_vocab['<bos>']
     EOS_IDX = src_vocab['<eos>']
-    PAD_IDX = src_vocab['<pad>']
 
+    src_tok = get_tokenizer('spacy', language=opts.src_lang)
+    trg_tok = get_tokenizer('spacy', language=opts.trg_lang)
     for idx in range(len(data)):
         src = data[idx][0]
         trg = data[idx][1]
 
-        src = [src_vocab.stoi[x] for x in src.split(" ")]
-        trg = [trg_vocab.stoi[x] for x in trg.split(" ")]
+        src = [src_vocab[x] for x in src_tok(src)]
+        trg = [trg_vocab[x] for x in trg_tok(trg)]
+
 
         src.insert(0, BOS_IDX)
-        src.insert(-1, EOS_IDX)
-
         trg.insert(0, BOS_IDX)
-        trg.insert(-1, EOS_IDX)
+
+        src.append(EOS_IDX)
+        trg.append( EOS_IDX)
 
         src = torch.as_tensor(src)
         trg = torch.as_tensor(trg)
-
-        src = pad_sequence(src, padding_value=PAD_IDX)
-        trg = pad_sequence(trg, padding_value=PAD_IDX)
         data[idx] = (src, trg)
 
     dataset._iterator = iter(data)
@@ -152,11 +152,13 @@ def create_dataset(opts):
         src_vocab, trg_vocab = load_vocab(opts, train_data)
         status.status = "[bold green]Initializing dataloader.."
         status.update()
+        preprocess_dataset(opts,train_data, src_vocab, trg_vocab)
 
-        preprocess_dataset(train_data, src_vocab, trg_vocab)
+        PAD_IDX = src_vocab['<pad>']
 
         def generate_batch(data_batch):
-            src_batch, trg_batch = [], []
+            src_batch = [x[0] for x in data_batch]
+            trg_batch = [x[1] for x in data_batch]
             src_batch = pad_sequence(src_batch, padding_value=PAD_IDX)
             trg_batch = pad_sequence(trg_batch, padding_value=PAD_IDX)
             return src_batch, trg_batch
