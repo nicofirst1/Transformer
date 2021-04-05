@@ -20,12 +20,12 @@ def main():
     console.log(sorted(vars(opts).items()))
 
     train_data, src, trg = data_pipeline(opts)
-    model = get_model(opts, len(src.vocab), len(trg.vocab))
+    model = get_model(opts, len(src), len(trg))
 
     optimizer = torch.optim.Adam(model.parameters(), lr=opts.lr, betas=(0.9, 0.98), eps=1e-9)
 
-    game = ClassicGame(opts.src_pad,
-                       opts.trg_pad,
+    game = ClassicGame(src.stoi['<PAD>'],
+                       trg.stoi['<PAD>'],
                        model,
                        opts.device,
                        loss_fn, )

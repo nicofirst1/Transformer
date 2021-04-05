@@ -1,9 +1,16 @@
 import os
+from collections import Counter
 
 import dill as pickle
 import numpy as np
 import pandas as pd
+import torch
+import torchtext
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader
+from torchtext.data import get_tokenizer
 from torchtext.legacy import data
+from torchtext.vocab import Vocab
 
 from core.util import console
 from data_gen.Batch import MyIterator, BatchSize
@@ -79,7 +86,88 @@ def load_fields(output_dir):
     return src, trg
 
 
+def load_vocab(opts, train_data):
+    try:
+        src_vocab = pickle.load(open(f'{opts.output_dir}/src.pkl', 'rb'))
+        trg_vocab = pickle.load(open(f'{opts.output_dir}/trg.pkl', 'rb'))
+        console.log("Vocabulary loaded from file")
+
+    except FileNotFoundError:
+        src_tok = get_tokenizer('spacy', language=opts.src_lang)
+        trg_tok = get_tokenizer('spacy', language=opts.trg_lang)
+        src_counter = Counter()
+        trg_counter = Counter()
+
+        for (label, line) in train_data:
+            src_counter.update(src_tok(line))
+            trg_counter.update(trg_tok(line))
+
+        src_vocab = Vocab(src_counter, min_freq=1, specials=['<unk>', '<pad>', '<bos>', '<eos>'])
+        trg_vocab = Vocab(trg_counter, min_freq=1, specials=['<unk>', '<pad>', '<bos>', '<eos>'])
+
+        pickle.dump(src_vocab, open(f'{opts.output_dir}/src.pkl', 'wb'))
+        pickle.dump(trg_vocab, open(f'{opts.output_dir}/trg.pkl', 'wb'))
+        console.log("Vocabulary created")
+
+    return src_vocab, trg_vocab
+
+
+def preprocess_dataset(dataset, src_vocab, trg_vocab):
+    data = list(dataset._iterator)
+    BOS_IDX = src_vocab['<bos>']
+    EOS_IDX = src_vocab['<eos>']
+    PAD_IDX = src_vocab['<pad>']
+
+    for idx in range(len(data)):
+        src = data[idx][0]
+        trg = data[idx][1]
+
+        src = [src_vocab.stoi[x] for x in src.split(" ")]
+        trg = [trg_vocab.stoi[x] for x in trg.split(" ")]
+
+        src.insert(0, BOS_IDX)
+        src.insert(-1, EOS_IDX)
+
+        trg.insert(0, BOS_IDX)
+        trg.insert(-1, EOS_IDX)
+
+        src = torch.as_tensor(src)
+        trg = torch.as_tensor(trg)
+
+        src = pad_sequence(src, padding_value=PAD_IDX)
+        trg = pad_sequence(trg, padding_value=PAD_IDX)
+        data[idx] = (src, trg)
+
+    dataset._iterator = iter(data)
+
+
 def create_dataset(opts):
+    with console.status("[bold green]Dataset loading...") as status:
+        src_pair = opts.src_lang.split("_")[0]
+        trg_pair = opts.trg_lang.split("_")[0]
+        train_data = torchtext.datasets.IWSLT2017(root='.data', split='train', language_pair=(src_pair, trg_pair))
+        console.log("Dataset loaded.")
+        status.status = "[bold green]Creating vocabulary..."
+        status.update()
+        src_vocab, trg_vocab = load_vocab(opts, train_data)
+        status.status = "[bold green]Initializing dataloader.."
+        status.update()
+
+        preprocess_dataset(train_data, src_vocab, trg_vocab)
+
+        def generate_batch(data_batch):
+            src_batch, trg_batch = [], []
+            src_batch = pad_sequence(src_batch, padding_value=PAD_IDX)
+            trg_batch = pad_sequence(trg_batch, padding_value=PAD_IDX)
+            return src_batch, trg_batch
+
+        train_iter = DataLoader(train_data, batch_size=opts.batch_size, collate_fn=generate_batch)
+        console.log("DataLoader initialized")
+
+    return train_iter, src_vocab, trg_vocab
+
+
+def create_dataset2(opts):
     console.log("Loading iterator...")
 
     def token(x):
@@ -102,9 +190,6 @@ def create_dataset(opts):
 
     pickle.dump(src, open(f'{opts.output_dir}/src.pkl', 'wb'))
     pickle.dump(trg, open(f'{opts.output_dir}/trg.pkl', 'wb'))
-
-    opts.src_pad = src.vocab.stoi['<pad>']
-    opts.trg_pad = trg.vocab.stoi['<pad>']
 
     return train_iter, src, trg
 

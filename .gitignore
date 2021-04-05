@@ -14,3 +14,5 @@ data/europarl-v7.it-en.it
 data/europarl-v7.it-en.en
 
 *.tar
+
+.data/
