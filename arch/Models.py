@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from arch.Embed import Embedder, PositionalEncoder
+from arch.Embed import  PositionalEncoder
 from arch.Layers import EncoderLayer, DecoderLayer
 from arch.Sublayers import Norm
 from core import move_to
@@ -21,7 +21,9 @@ class Encoder(nn.Module):
     def __init__(self, vocab_size, d_model, n_layers, heads, dropout):
         super().__init__()
         self.n_layers = n_layers
-        self.embed = Embedder(vocab_size, d_model)
+
+        self.embed = nn.Embedding(vocab_size, d_model)
+
         self.pe = PositionalEncoder(d_model, dropout=dropout)
         self.layers = get_clones(EncoderLayer(d_model, heads, dropout), n_layers)
         self.norm = Norm(d_model)
@@ -38,7 +40,7 @@ class Decoder(nn.Module):
     def __init__(self, vocab_size, d_model, n_layers, heads, dropout):
         super().__init__()
         self.n_layers = n_layers
-        self.embed = Embedder(vocab_size, d_model)
+        self.embed = nn.Embedding(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model, dropout=dropout)
         self.layers = get_clones(DecoderLayer(d_model, heads, dropout), n_layers)
         self.norm = Norm(d_model)

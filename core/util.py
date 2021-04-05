@@ -61,7 +61,7 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
     )
     # cuda setup
     arg_parser.add_argument(
-        "--no_cuda", default=False, help="disable cuda", action="store_true"
+        "--no_cuda", default=True, help="disable cuda", action="store_true"
     )
 
     # optimizer
