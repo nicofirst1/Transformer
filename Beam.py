@@ -8,17 +8,15 @@ from data_gen.Batch import nopeak_mask
 
 
 def init_vars(sentence, model, src, trg, opt):
-    init_tok = trg.vocab.stoi['<sos>']
-    src_mask = (sentence != src.vocab.stoi['<pad>']).unsqueeze(-2)
+    init_tok = trg['<bos>']
+    src_mask = (sentence != src['<pad>']).unsqueeze(-2)
     e_output = model.encoder(sentence, src_mask)
 
     outputs = torch.LongTensor([[init_tok]])
 
     trg_mask = nopeak_mask(1)
     trg_mask = move_to(trg_mask, opt.device)
-
     outputs = move_to(outputs, opt.device)
-    trg_mask = move_to(trg_mask, opt.device)
 
     decoded = model.decoder(outputs, e_output, src_mask, trg_mask)
     out = model.out(decoded)
@@ -59,8 +57,8 @@ def k_best_outputs(outputs, out, log_scores, i, k):
 
 def beam_search(sentence, model, src, trg, opt):
     outputs, e_outputs, log_scores = init_vars(sentence, model, src, trg, opt)
-    eos_tok = trg.vocab.stoi['<eos>']
-    src_mask = (sentence != src.vocab.stoi['<pad>']).unsqueeze(-2)
+    eos_tok = trg['<eos>']
+    src_mask = (sentence != src['<pad>']).unsqueeze(-2)
     ind = None
     for i in range(2, opt.max_len):
 
@@ -96,8 +94,8 @@ def beam_search(sentence, model, src, trg, opt):
             length = opt.max_len
         else:
             length = length[0]
-        return ' '.join([trg.vocab.itos[tok] for tok in outputs[0][1:length]])
+        return ' '.join([trg.itos[tok] for tok in outputs[0][1:length]])
 
     else:
         length = (outputs[ind] == eos_tok).nonzero()[0]
-        return ' '.join([trg.vocab.itos[tok] for tok in outputs[ind][1:length]])
+        return ' '.join([trg.itos[tok] for tok in outputs[ind][1:length]])

@@ -61,16 +61,9 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
     )
     # cuda setup
     arg_parser.add_argument(
-        "--no_cuda", default=True, help="disable cuda", action="store_true"
+        "--no_cuda", default=False, help="disable cuda", action="store_true"
     )
 
-    # optimizer
-    arg_parser.add_argument(
-        "--optimizer",
-        type=str,
-        default="adam",
-        help="Optimizer to use [adam, sgd, adagrad] (default: adam)",
-    )
 
     arg_parser.add_argument(
         "--update_freq",
@@ -91,15 +84,13 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
 
 
 def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument('-df_path', type=str, default="data/translate_transformer.csv")
-    parser.add_argument('-df_path_reduced', type=str, default="")
-    parser.add_argument('-reduce_perc', type=float, default=0.01)
-
     parser.add_argument('-validation_freq', type=int, default=1)
-    parser.add_argument('-src_data', default='data/europarl-v7.it-en.en')
-    parser.add_argument('-trg_data', default='data/europarl-v7.it-en.it')
     parser.add_argument('-src_lang', default='en_core_web_sm')
     parser.add_argument('-trg_lang', default='it_core_news_sm')
+
+    parser.add_argument('-min_word_freq', type=int, default=5,
+                        help="The minimun nuber of times a word should appear in the corpora to be included"
+                             " in the vocabulary. Increase if you get a cuda OOM erro")
 
     parser.add_argument('-encod_num', type=int, default=4)
     parser.add_argument('-dencod_num', type=int, default=4)
@@ -107,15 +98,15 @@ def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.Argumen
                         default="transformer")
 
     parser.add_argument('-epochs', type=int, default=200)
-    parser.add_argument('-model_dim', type=int, default=512)
-    parser.add_argument('-n_layers', type=int, default=6)
-    parser.add_argument('-heads', type=int, default=8)
+    parser.add_argument('-model_dim', type=int, default=128)
+    parser.add_argument('-n_layers', type=int, default=3)
+    parser.add_argument('-heads', type=int, default=4)
     parser.add_argument('-dropout', type=int, default=0.1)
-    parser.add_argument('-batch_size', type=int, default=128)
+    parser.add_argument('-batch_size', type=int, default=32)
     parser.add_argument('-lr', type=int, default=0.0001)
     parser.add_argument('-load_weights', default=True)
     parser.add_argument('-create_valset', action='store_true')
-    parser.add_argument('-max_strlen', type=int, default=80)
+    parser.add_argument('-max_strlen', type=int, default=10)
     parser.add_argument('-checkpoint', type=int, default=0)
     parser.add_argument('-output_dir', default='output')
 
@@ -133,13 +124,6 @@ def _get_params(
     # just to avoid confusion and be consistent
     args.no_cuda = not args.cuda
     args.device = torch.device("cuda" if args.cuda else "cpu")
-
-    if args.df_path is not None:
-        file_perc = str(args.reduce_perc).replace(".", "")
-        file_path = args.df_path.split(".")
-        file_path.insert(-1, f"_reduced{file_perc}.")
-        file_path = "".join(file_path)
-        args.df_path_reduced = file_path
 
     return args
 
