@@ -27,95 +27,6 @@ def get_len(train):
     return i
 
 
-def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    arg_parser.add_argument(
-        "--random_seed", type=int, default=None, help="Set random seed"
-    )
-    # core params
-    arg_parser.add_argument(
-        "--checkpoint_dir",
-        type=str,
-        default=None,
-        help="Where the checkpoints are stored",
-    )
-
-    arg_parser.add_argument(
-        "--checkpoint_freq",
-        type=int,
-        default=1,
-        help="How often the checkpoints are saved",
-    )
-    arg_parser.add_argument(
-        "--validation_freq",
-        type=int,
-        default=1,
-        help="The validation would be run every `validation_freq` epochs",
-    )
-
-    arg_parser.add_argument(
-        "--load_from_checkpoint",
-        type=str,
-        default=None,
-        help="If the parameter is set, model, core, and optimizer states are loaded from the "
-             "checkpoint (default: None)",
-    )
-    # cuda setup
-    arg_parser.add_argument(
-        "--no_cuda", default=False, help="disable cuda", action="store_true"
-    )
-
-
-    arg_parser.add_argument(
-        "--update_freq",
-        type=int,
-        default=1,
-        help="Learnable weights are updated every update_freq batches (default: 1)",
-    )
-
-    # Setting up tensorboard
-    arg_parser.add_argument(
-        "--tensorboard", default=False, help="enable tensorboard", action="store_true"
-    )
-    arg_parser.add_argument(
-        "--tensorboard_dir", type=str, default="runs/", help="Path for tensorboard log"
-    )
-
-    return arg_parser
-
-
-def _populate_custom_params(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument('-validation_freq', type=int, default=1)
-    parser.add_argument('-src_lang', default='en_core_web_sm')
-    parser.add_argument('-trg_lang', default='it_core_news_sm')
-
-    parser.add_argument('-min_word_freq', type=int, default=5,
-                        help="The minimun nuber of times a word should appear in the corpora to be included"
-                             " in the vocabulary. Increase if you get a cuda OOM erro")
-
-    parser.add_argument('-encod_num', type=int, default=4)
-    parser.add_argument('-dencod_num', type=int, default=4)
-    parser.add_argument('-model', type=str, choices=["transformer", "multiencoder", "multidecoder"],
-                        default="transformer")
-
-    parser.add_argument('-epochs', type=int, default=200)
-    parser.add_argument('-model_dim', type=int, default=128)
-    parser.add_argument('-n_layers', type=int, default=3)
-    parser.add_argument('-heads', type=int, default=4)
-    parser.add_argument('-dropout', type=int, default=0.1)
-    parser.add_argument('-batch_size', type=int, default=32)
-    parser.add_argument('-lr', type=int, default=0.0001)
-    parser.add_argument('-load_weights', default=True)
-    parser.add_argument('-create_valset', action='store_true')
-    parser.add_argument('-max_strlen', type=int, default=10)
-    parser.add_argument('-checkpoint', type=int, default=0)
-    parser.add_argument('-output_dir', default='output')
-
-    parser.add_argument('-k', type=int, default=3)
-    parser.add_argument('-max_len', type=int, default=80)
-
-    return parser
-
-
 def _get_params(
         arg_parser: argparse.ArgumentParser, params: List[str]
 ) -> argparse.Namespace:
@@ -129,7 +40,7 @@ def _get_params(
 
 
 def init(
-        arg_parser: Optional[argparse.ArgumentParser] = None,
+        arg_parser: argparse.ArgumentParser,
         params: Optional[List[str]] = None,
 ) -> argparse.Namespace:
     """
@@ -146,11 +57,6 @@ def init(
     global common_opts
     global summary_writer
 
-    if arg_parser is None:
-        arg_parser = argparse.ArgumentParser()
-    arg_parser = _populate_cl_params(arg_parser)
-    arg_parser = _populate_custom_params(arg_parser)
-
     if params is None:
         params = sys.argv[1:]
     common_opts = _get_params(arg_parser, params)
@@ -161,19 +67,6 @@ def init(
         common_opts.random_seed += common_opts.distributed_context.rank
 
     _set_seed(common_opts.random_seed)
-
-    if summary_writer is None and common_opts.tensorboard:
-        try:
-            from torch.utils.tensorboard import SummaryWriter
-
-            summary_writer = SummaryWriter(log_dir=common_opts.tensorboard_dir)
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                "Cannot load tensorboard module; makes sure you installed everything required"
-            )
-
-    if common_opts.update_freq <= 0:
-        raise RuntimeError("update_freq should be an integer, >= 1.")
 
     return common_opts
 

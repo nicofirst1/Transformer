@@ -5,6 +5,7 @@ from arch.Models import get_model
 from core import Trainer, ProgressBarLogger
 from core.callbacks import CheckpointSaver, CustomMetrics
 from core.games import ClassicGame
+from core.parsers import init_parser
 from core.util import init
 from data_gen.Process import *
 
@@ -15,7 +16,8 @@ def loss_fn(preds, lables, trg_pad):
 
 
 def main():
-    opts = init()
+    parser= init_parser()
+    opts = init(parser)
 
     console.log(sorted(vars(opts).items()))
 
@@ -29,7 +31,8 @@ def main():
                        trg.stoi['<PAD>'],
                        model,
                        opts.device,
-                       loss_fn, )
+                       loss_fn,
+                       model_type=opts.model)
 
     trainer = Trainer(game=game,
                       optimizer=optimizer,

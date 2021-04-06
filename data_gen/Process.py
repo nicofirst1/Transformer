@@ -66,6 +66,44 @@ def preprocess_dataset(opts, dataset, src_vocab, trg_vocab):
     dataset._iterator = iter(data)
 
 
+def batch_generator(opts, src_vocab, trg_vocab):
+    src_tok = get_tokenizer('spacy', language=opts.src_lang)
+    trg_tok = get_tokenizer('spacy', language=opts.trg_lang)
+    BOS_IDX = src_vocab['<bos>']
+    EOS_IDX = src_vocab['<eos>']
+    PAD_IDX = src_vocab['<pad>']
+
+    def inner(data_batch):
+        src_batch = [x[0] for x in data_batch]
+        trg_batch = [x[1] for x in data_batch]
+
+        for idx in range(len(src_batch)):
+            src = src_batch[idx]
+            trg = trg_batch[idx]
+
+            src = [src_vocab[x] for x in src_tok(src)]
+            trg = [trg_vocab[x] for x in trg_tok(trg)]
+
+            src.insert(0, BOS_IDX)
+            trg.insert(0, BOS_IDX)
+
+            src.append(EOS_IDX)
+            trg.append(EOS_IDX)
+
+            src = torch.as_tensor(src)
+            trg = torch.as_tensor(trg)
+
+            src_batch[idx] = src
+            trg_batch[idx] = trg
+
+
+        src_batch = pad_sequence(src_batch, padding_value=PAD_IDX)
+        trg_batch = pad_sequence(trg_batch, padding_value=PAD_IDX)
+        return src_batch, trg_batch
+
+    return inner
+
+
 def create_dataset(opts):
     with console.status("[bold green]Dataset loading...") as status:
         src_pair = opts.src_lang.split("_")[0]
@@ -77,18 +115,10 @@ def create_dataset(opts):
         src_vocab, trg_vocab = load_vocab(opts, train_data)
         status.status = "[bold green]Initializing dataloader.."
         status.update()
-        preprocess_dataset(opts, train_data, src_vocab, trg_vocab)
+        # preprocess_dataset(opts, train_data, src_vocab, trg_vocab)
 
-        PAD_IDX = src_vocab['<pad>']
-
-        def generate_batch(data_batch):
-            src_batch = [x[0] for x in data_batch]
-            trg_batch = [x[1] for x in data_batch]
-            src_batch = pad_sequence(src_batch, padding_value=PAD_IDX)
-            trg_batch = pad_sequence(trg_batch, padding_value=PAD_IDX)
-            return src_batch, trg_batch
-
-        train_iter = DataLoader(train_data, batch_size=opts.batch_size, collate_fn=generate_batch)
+        train_iter = DataLoader(train_data, batch_size=opts.batch_size, collate_fn=batch_generator(opts, src_vocab,
+                                                                                                   trg_vocab))
         console.log("DataLoader initialized")
 
     return train_iter, src_vocab, trg_vocab

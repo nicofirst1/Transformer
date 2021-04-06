@@ -77,7 +77,6 @@ class MemTracker(object):
         handle = pynvml.nvmlDeviceGetHandleByIndex(self.device)
         meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
         self.curr_line = self.frame.f_lineno
-        where_str = self.module_name + ' ' + self.func_name + ':' + ' line ' + str(self.curr_line)
 
         with open(self.gpu_profile_fn, 'a+') as f:
             mem= meminfo.used / 1000 ** 2

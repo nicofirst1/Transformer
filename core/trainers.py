@@ -91,7 +91,7 @@ class Trainer:
         self.optimizer.state = move_to(self.optimizer.state, self.device)
 
         frame = inspect.currentframe()  # define a frame to track
-        #self.gpu_tracker = MemTracker(frame)  # define a GPU tracker
+        self.gpu_tracker = MemTracker(frame)  # define a GPU tracker
 
     def eval(self):
         mean_loss = 0.0

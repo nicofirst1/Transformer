@@ -8,9 +8,9 @@ from torchtext.data import get_tokenizer
 from Beam import beam_search
 from arch.Models import get_model
 from core import move_to, init
+from core.parsers import init_parser
 from core.util import console
-from data_gen.Process import  load_vocab
-from data_gen.Tokenize import Tokenize
+from data_gen.Process import load_vocab
 
 
 def get_synonym(word, src):
@@ -34,9 +34,9 @@ def multiple_replace(dict, text):
 def translate_sentence(sentence, model, opts, src, trg):
     model.eval()
     indexed = []
-    tokenizer=get_tokenizer('spacy', language=opts.src_lang)
-    sentence =tokenizer(sentence)
-    #sentence = [src[x] for x in sentence]
+    tokenizer = get_tokenizer('spacy', language=opts.src_lang)
+    sentence = tokenizer(sentence)
+    # sentence = [src[x] for x in sentence]
     for tok in sentence:
         if src[tok] != 0:
             indexed.append(src[tok])
@@ -63,14 +63,15 @@ def translate(opt, model, src, trg):
 
 
 def main():
-    opts = init()
+    parser = init_parser()
+    opts = init(parser)
 
     console.log(sorted(vars(opts).items()))
 
     assert opts.k > 0
     assert opts.max_len > 10
 
-    src, trg = load_vocab(opts,None)
+    src, trg = load_vocab(opts, None)
     model = get_model(opts, len(src), len(trg), weight_path=opts.output_dir)
 
     while True:

@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from arch.Embed import  PositionalEncoder
+from arch.Embed import PositionalEncoder
 from arch.Layers import EncoderLayer, DecoderLayer
 from arch.Sublayers import Norm
 from core import move_to
@@ -35,6 +35,9 @@ class Encoder(nn.Module):
             x = self.layers[i](x, mask)
         return self.norm(x)
 
+    def predict_decoder(self, decoder_in, decoder_out):
+        x = self.embed(decoder_out)
+
 
 class Decoder(nn.Module):
     def __init__(self, vocab_size, d_model, n_layers, heads, dropout):
@@ -51,6 +54,23 @@ class Decoder(nn.Module):
         for i in range(self.n_layers):
             x = self.layers[i](x, e_outputs, src_mask, trg_mask)
         return self.norm(x)
+
+
+class ModelingTransformer(nn.Module):
+    def __init__(self, src_vocab, trg_vocab, d_model, N, heads, dropout):
+        super().__init__()
+        self.encoder = Encoder(src_vocab, d_model, N, heads, dropout)
+        self.decoder = Decoder(trg_vocab, d_model, N, heads, dropout)
+        self.out = nn.Linear(d_model, trg_vocab)
+
+    def forward(self, src, trg, src_mask, trg_mask):
+        e_outputs = self.encoder(src, src_mask)
+        # print("DECODER")
+        d_output = self.decoder(trg, e_outputs, src_mask, trg_mask)
+
+        sender_guess = self.encoder.predict_decoder(self.decoder.embed(trg), d_output)
+        output = self.out(d_output)
+        return output, sender_guess
 
 
 class Transformer(nn.Module):
@@ -141,7 +161,7 @@ def get_model(opts, src_vocab, trg_vocab, weight_path=None):
     assert opts.model_dim % opts.heads == 0
     assert opts.dropout < 1
 
-    if opts.model == "transformer":
+    if opts.model == "standard":
 
         model = Transformer(src_vocab, trg_vocab, opts.model_dim, opts.n_layers, opts.heads, opts.dropout)
     elif opts.model == "multiencoder":
@@ -150,6 +170,13 @@ def get_model(opts, src_vocab, trg_vocab, weight_path=None):
     elif opts.model == "multidencoder":
         model = MultiEncTransformer(src_vocab, trg_vocab, opts.model_dim, opts.n_layers, opts.heads, opts.dropout,
                                     opts.decod_num)
+
+    elif opts.model == "modeling":
+        model = ModelingTransformer(src_vocab, trg_vocab, opts.model_dim, opts.n_layers, opts.heads, opts.dropout, )
+
+    else:
+        raise KeyError(f"No model with name {opts.model} available!")
+
     if weight_path is not None:
         try:
             load_weights(weight_path, model)

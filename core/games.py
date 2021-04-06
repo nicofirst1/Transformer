@@ -20,6 +20,7 @@ class ClassicGame(nn.Module):
             model,
             device,
             loss,
+            model_type,
     ):
         super(ClassicGame, self).__init__()
 
@@ -28,6 +29,7 @@ class ClassicGame(nn.Module):
         self.model = model
         self.device = device
         self.loss_fn = loss
+        self.model_type=model_type
 
         self.train_logging_strategy = LoggingStrategy()
 
@@ -45,6 +47,10 @@ class ClassicGame(nn.Module):
         #self.gpu_tracker.track(2)
 
         preds = self.model(src, trg_input, src_mask, trg_mask)
+
+        if self.model_type=="modeling":
+            preds, sender_guess=preds
+
         #self.gpu_tracker.track(3)
 
         ys = trg[:, 1:].contiguous().view(-1)

@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-
+import matplotlib.pyplot as plt
 
 
 class PositionalEncoder(nn.Module):
@@ -23,6 +23,8 @@ class PositionalEncoder(nn.Module):
                     math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
+
+        #plt.plot(self.pe.squeeze().numpy())
 
     def forward(self, x):
         # make embeddings relatively larger
