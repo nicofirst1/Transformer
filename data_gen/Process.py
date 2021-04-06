@@ -96,7 +96,6 @@ def batch_generator(opts, src_vocab, trg_vocab):
             src_batch[idx] = src
             trg_batch[idx] = trg
 
-
         src_batch = pad_sequence(src_batch, padding_value=PAD_IDX)
         trg_batch = pad_sequence(trg_batch, padding_value=PAD_IDX)
         return src_batch, trg_batch

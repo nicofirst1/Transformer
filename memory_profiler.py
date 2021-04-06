@@ -1,9 +1,9 @@
-import gc
 import datetime
-import pynvml
+import gc
 
-import torch
 import numpy as np
+import pynvml
+import torch
 
 dtype_memory_size_dict = {
     torch.float32: 32 / 8,
@@ -46,7 +46,7 @@ class MemTracker(object):
         self.verbose = verbose
         self.begin = True
         self.device = device
-        self.prev_mem=0
+        self.prev_mem = 0
 
         self.func_name = frame.f_code.co_name
         self.filename = frame.f_globals["__file__"]
@@ -79,11 +79,11 @@ class MemTracker(object):
         self.curr_line = self.frame.f_lineno
 
         with open(self.gpu_profile_fn, 'a+') as f:
-            mem= meminfo.used / 1000 ** 2
+            mem = meminfo.used / 1000 ** 2
             f.write(f"\nAt index {index:<50}"
-                    f"Total Used Memory:{mem:<7.1f}Mb\t diff : {mem-self.prev_mem:<7.1f}Mb\n\n")
+                    f"Total Used Memory:{mem:<7.1f}Mb\t diff : {mem - self.prev_mem:<7.1f}Mb\n\n")
 
-            self.prev_mem=mem
+            self.prev_mem = mem
             if self.begin:
                 f.write(f"GPU Memory Track | {datetime.datetime.now():%d-%b-%y-%H:%M:%S} |"
                         f" Total Used Memory:{meminfo.used / 1000 ** 2:<7.1f}Mb\n\n")
@@ -96,13 +96,11 @@ class MemTracker(object):
                                      ts_list.count((x.size(), x.dtype)),
                                      np.prod(np.array(x.size())) * get_mem_space(x.dtype) / 1000 ** 2,
                                      x.dtype) for x in self.get_tensors()}
-                new_tensor_sizes-=self.last_tensor_sizes
+                new_tensor_sizes -= self.last_tensor_sizes
                 for t, s, n, m, data_type in new_tensor_sizes:
                     f.write(
                         f'+ | {str(n)} * Size:{str(s):<20} | Memory: {str(m * n)[:6]} M | {str(t):<20} | {data_type}\n')
 
-
                 self.last_tensor_sizes = new_tensor_sizes
-
 
         pynvml.nvmlShutdown()

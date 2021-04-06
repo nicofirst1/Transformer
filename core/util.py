@@ -15,7 +15,6 @@ from rich.console import Console
 
 common_opts = None
 optimizer = None
-summary_writer = None
 
 console = Console()
 
@@ -55,7 +54,6 @@ def init(
     to use default parameters.
     """
     global common_opts
-    global summary_writer
 
     if params is None:
         params = sys.argv[1:]
@@ -71,29 +69,12 @@ def init(
     return common_opts
 
 
-def close() -> None:
-    """
-    Should be called at the end of the program - however, not required unless Tensorboard is used
-    """
-    global summary_writer
-    if summary_writer:
-        summary_writer.close()
-
-
 def get_opts() -> argparse.Namespace:
     """
     :return: command line options
     """
     global common_opts
     return common_opts
-
-
-def get_summary_writer() -> "torch.utils.SummaryWriter":
-    """
-    :return: Returns an initialized instance of torch.util.SummaryWriter
-    """
-    global summary_writer
-    return summary_writer
 
 
 def _set_seed(seed) -> None:

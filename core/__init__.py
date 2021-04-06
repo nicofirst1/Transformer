@@ -18,9 +18,7 @@ from .interaction import Interaction, LoggingStrategy
 
 from .trainers import Trainer
 from .util import (
-    close,
     get_opts,
-    get_summary_writer,
     init,
     move_to,
 )
@@ -38,8 +36,6 @@ __all__ = [
     "InteractionSaver",
     "CheckpointSaver",
     "move_to",
-    "get_summary_writer",
-    "close",
     "LoggingStrategy",
     "Interaction",
 

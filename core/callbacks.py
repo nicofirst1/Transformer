@@ -24,8 +24,8 @@ from rich.progress import (
 )
 from rich.table import Table
 from rich.text import Text
+from torch.utils.tensorboard import SummaryWriter
 
-from core.util import get_summary_writer
 from .interaction import Interaction
 
 
@@ -91,28 +91,26 @@ class ConsoleLogger(Callback):
 
 
 class TensorboardLogger(Callback):
-    def __init__(self, writer=None):
-        if writer:
-            self.writer = writer
-        else:
-            self.writer = get_summary_writer()
-
-    def on_test_end(self, loss: float, logs: Interaction, epoch: int):
-        self.writer.add_scalar(tag="test/loss", scalar_value=loss, global_step=epoch)
-        for k, v in logs.aux.items():
-            self.writer.add_scalar(
-                tag=f"test/{k}", scalar_value=v.mean(), global_step=epoch
-            )
-
-    def on_epoch_end(self, loss: float, logs: Interaction, epoch: int):
-        self.writer.add_scalar(tag="train/loss", scalar_value=loss, global_step=epoch)
-        for k, v in logs.aux.items():
-            self.writer.add_scalar(
-                tag=f"train/{k}", scalar_value=v.mean(), global_step=epoch
-            )
+    def __init__(self, log_dir):
+        self.writer = SummaryWriter(log_dir)
+        self.batch = 0
+        self.print_every = 100
 
     def on_train_end(self):
         self.writer.close()
+
+    def on_batch_end(
+            self, logs: Interaction, loss: float, batch_id: int, is_training: bool = True
+    ):
+        if batch_id % self.print_every == 0:
+            tag = "train" if is_training else "val"
+            self.writer.add_scalar(tag=f"{tag}/loss", scalar_value=loss, global_step=self.batch)
+            for k, v in logs.aux.items():
+                self.writer.add_scalar(
+                    tag=f"{tag}/{k}", scalar_value=v.mean(), global_step=self.batch
+                )
+
+            self.batch += 1
 
 
 class TemperatureUpdater(Callback):

@@ -8,7 +8,6 @@ import torch.nn as nn
 
 from arch.Embed import PositionalEncoder
 from arch.Layers import EncoderLayer, DecoderLayer
-from arch.Sublayers import Norm
 from core import move_to
 from core.util import console
 
@@ -26,7 +25,9 @@ class Encoder(nn.Module):
 
         self.pe = PositionalEncoder(d_model, dropout=dropout)
         self.layers = get_clones(EncoderLayer(d_model, heads, dropout), n_layers)
-        self.norm = Norm(d_model)
+        self.norm = nn.LayerNorm(d_model)
+
+        self.guessing_ff = nn.Linear(d_model, 1)
 
     def forward(self, src, mask):
         x = self.embed(src)
@@ -35,8 +36,14 @@ class Encoder(nn.Module):
             x = self.layers[i](x, mask)
         return self.norm(x)
 
-    def predict_decoder(self, decoder_in, decoder_out):
-        x = self.embed(decoder_out)
+    def predict_decoder(self, decoder_in, mask):
+        x = self.pe(decoder_in)
+        for i in range(self.n_layers):
+            x = self.layers[i](x, mask)
+
+        x = self.norm(x)
+        x = self.guessing_ff(x)
+        return x.squeeze()
 
 
 class Decoder(nn.Module):
@@ -46,7 +53,7 @@ class Decoder(nn.Module):
         self.embed = nn.Embedding(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model, dropout=dropout)
         self.layers = get_clones(DecoderLayer(d_model, heads, dropout), n_layers)
-        self.norm = Norm(d_model)
+        self.norm = nn.LayerNorm(d_model)
 
     def forward(self, trg, e_outputs, src_mask, trg_mask):
         x = self.embed(trg)
@@ -68,7 +75,7 @@ class ModelingTransformer(nn.Module):
         # print("DECODER")
         d_output = self.decoder(trg, e_outputs, src_mask, trg_mask)
 
-        sender_guess = self.encoder.predict_decoder(self.decoder.embed(trg), d_output)
+        sender_guess = self.encoder.predict_decoder(self.decoder.embed(trg), trg_mask)
         output = self.out(d_output)
         return output, sender_guess
 

@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-import matplotlib.pyplot as plt
-
 
 class PositionalEncoder(nn.Module):
     def __init__(self, d_model, max_seq_len=200, dropout=0.1):
@@ -24,7 +22,7 @@ class PositionalEncoder(nn.Module):
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
-        #plt.plot(self.pe.squeeze().numpy())
+        # plt.plot(self.pe.squeeze().numpy())
 
     def forward(self, x):
         # make embeddings relatively larger

@@ -1,10 +1,9 @@
-import torch
 import torch.nn.functional as F
 
 from arch.Models import get_model
 from core import Trainer, ProgressBarLogger
-from core.callbacks import CheckpointSaver, CustomMetrics
-from core.games import ClassicGame
+from core.callbacks import CheckpointSaver, CustomMetrics, TensorboardLogger
+from core.games import ClassicGame, ModelingGame
 from core.parsers import init_parser
 from core.util import init
 from data_gen.Process import *
@@ -12,27 +11,33 @@ from data_gen.Process import *
 
 def loss_fn(preds, lables, trg_pad):
     loss = F.cross_entropy(preds, lables, ignore_index=trg_pad)
-    return loss, {}
+    return loss
 
 
 def main():
-    parser= init_parser()
+    parser = init_parser()
     opts = init(parser)
-
+    torch.autograd.set_detect_anomaly(True)
     console.log(sorted(vars(opts).items()))
 
-    train_data, src, trg  = create_dataset(opts)
+    train_data, src, trg = create_dataset(opts)
 
     model = get_model(opts, len(src), len(trg))
 
     optimizer = torch.optim.Adam(model.parameters(), lr=opts.lr)
 
-    game = ClassicGame(src.stoi['<PAD>'],
-                       trg.stoi['<PAD>'],
-                       model,
-                       opts.device,
-                       loss_fn,
-                       model_type=opts.model)
+    if opts.model == "modeling":
+        game = ModelingGame(src.stoi['<PAD>'],
+                            trg.stoi['<PAD>'],
+                            model,
+                            opts.device,
+                            loss_fn, )
+    else:
+        game = ClassicGame(src.stoi['<PAD>'],
+                           trg.stoi['<PAD>'],
+                           model,
+                           opts.device,
+                           loss_fn, )
 
     trainer = Trainer(game=game,
                       optimizer=optimizer,
@@ -44,6 +49,7 @@ def main():
                           ProgressBarLogger(n_epochs=opts.epochs, train_data_len=len(train_data)),
                           CheckpointSaver(checkpoint_path=opts.output_dir, checkpoint_freq=opts.checkpoint_freq,
                                           prefix="model_weights", max_checkpoints=3),
+                          TensorboardLogger("./tensorboard"),
                       ],
                       opts=opts)
 
