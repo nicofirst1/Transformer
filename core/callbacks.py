@@ -99,18 +99,27 @@ class TensorboardLogger(Callback):
     def on_train_end(self):
         self.writer.close()
 
+    def log(self, tag, logs, loss):
+        self.writer.add_scalar(tag=f"{tag}/loss", scalar_value=loss, global_step=self.batch)
+        for k, v in logs.aux.items():
+            if not torch.is_tensor(v):
+                v= torch.as_tensor(v)
+            self.writer.add_scalar(
+                tag=f"{tag}/{k}", scalar_value=v.mean(), global_step=self.batch
+            )
+
+        self.batch += 1
+
     def on_batch_end(
             self, logs: Interaction, loss: float, batch_id: int, is_training: bool = True
     ):
         if batch_id % self.print_every == 0:
             tag = "train" if is_training else "val"
-            self.writer.add_scalar(tag=f"{tag}/loss", scalar_value=loss, global_step=self.batch)
-            for k, v in logs.aux.items():
-                self.writer.add_scalar(
-                    tag=f"{tag}/{k}", scalar_value=v.mean(), global_step=self.batch
-                )
+            self.log(tag, logs, loss)
 
-            self.batch += 1
+    def on_epoch_end(self, loss: float, logs: Interaction, epoch: int):
+
+        self.log("train", logs, loss)
 
 
 class TemperatureUpdater(Callback):

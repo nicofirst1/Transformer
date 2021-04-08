@@ -46,7 +46,7 @@ def main():
                       device=opts.device,
                       callbacks=[
                           CustomMetrics(),
-                          ProgressBarLogger(n_epochs=opts.epochs, train_data_len=len(train_data)),
+                          ProgressBarLogger(n_epochs=opts.epochs, train_data_len=len(train_data), use_info_table=False),
                           CheckpointSaver(checkpoint_path=opts.output_dir, checkpoint_freq=opts.checkpoint_freq,
                                           prefix="model_weights", max_checkpoints=3),
                           TensorboardLogger("./tensorboard"),

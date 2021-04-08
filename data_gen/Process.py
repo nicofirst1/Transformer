@@ -1,3 +1,4 @@
+import random
 from collections import Counter
 
 import dill as pickle
@@ -47,7 +48,12 @@ def preprocess_dataset(opts, dataset, src_vocab, trg_vocab):
 
     src_tok = get_tokenizer('spacy', language=opts.src_lang)
     trg_tok = get_tokenizer('spacy', language=opts.trg_lang)
-    for idx in range(len(data)):
+
+    to_keep = int(len(data) * (opts.data_perc))
+    new_data = []
+    indices = random.choices(range(len(data)), k=to_keep)
+
+    for idx in indices:
         src = data[idx][0]
         trg = data[idx][1]
 
@@ -62,14 +68,12 @@ def preprocess_dataset(opts, dataset, src_vocab, trg_vocab):
 
         src = torch.as_tensor(src)
         trg = torch.as_tensor(trg)
-        data[idx] = (src, trg)
+        new_data.append((src, trg))
 
-    return TextData(dataset.description, data)
+    return TextData(dataset.description, new_data)
 
 
-def batch_generator(opts, src_vocab, trg_vocab):
-    PAD_IDX = src_vocab['<pad>']
-
+def batch_generator(PAD_IDX):
     def inner(data_batch):
         src_batch = [x[0] for x in data_batch]
         trg_batch = [x[1] for x in data_batch]
@@ -140,13 +144,13 @@ def create_dataset(opts):
         src_vocab, trg_vocab = load_vocab(opts, train_data)
         update_status(status, f"Preprocessing data...")
         train_data = preprocess_dataset(opts, train_data, src_vocab, trg_vocab)
-        update_status(status, f"Reducing dataset to {opts.data_perc}")
 
-        reduce_data(train_data, opts.data_perc)
         update_status(status, "Initializing dataloader..")
 
-        train_iter = DataLoader(train_data, batch_size=opts.batch_size, collate_fn=batch_generator(opts, src_vocab,
-                                                                                                   trg_vocab))
+        train_iter = DataLoader(train_data, batch_size=opts.batch_size,
+                                collate_fn=batch_generator(src_vocab['<pad>']),
+                                shuffle=True)
+
         console.log("DataLoader initialized")
 
     return train_iter, src_vocab, trg_vocab

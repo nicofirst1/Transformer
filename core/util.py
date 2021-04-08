@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import pathlib
 import random
 import sys
 from collections import defaultdict
@@ -34,6 +35,8 @@ def _get_params(
     # just to avoid confusion and be consistent
     args.no_cuda = not args.cuda
     args.device = torch.device("cuda" if args.cuda else "cpu")
+
+    pathlib.Path(args.output_dir).mkdir(exist_ok=True)
 
     return args
 
