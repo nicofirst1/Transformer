@@ -2,6 +2,7 @@
 
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
+import copy
 import inspect
 import os
 from pathlib import Path
@@ -93,6 +94,8 @@ class Trainer:
         frame = inspect.currentframe()  # define a frame to track
         self.gpu_tracker = MemTracker(frame)  # define a GPU tracker
 
+
+
     def eval(self):
         mean_loss = 0.0
         interactions = []
@@ -129,18 +132,14 @@ class Trainer:
         self.optimizer.zero_grad()
 
         for batch_id, batch in enumerate(self.train_data):
-            # self.gpu_tracker.track(1)
 
             batch = move_to(batch, self.device)
-            # self.gpu_tracker.track(2)
 
             context = nullcontext()
             with context:
                 optimized_loss, interaction = self.game(batch)
-            # self.gpu_tracker.track(3)
 
             optimized_loss.backward()
-            # self.gpu_tracker.track(4)
 
             if self.grad_norm:
                 torch.nn.utils.clip_grad_norm_(
@@ -148,24 +147,19 @@ class Trainer:
                 )
 
             self.optimizer.step()
-            # self.gpu_tracker.track(5)
 
             self.optimizer.zero_grad()
-            # self.gpu_tracker.track(6)
 
             n_batches += 1
             mean_loss += optimized_loss.detach()
 
             interaction = interaction.to("cpu")
-            # self.gpu_tracker.track(7)
 
             for callback in self.callbacks:
                 callback.on_batch_end(interaction, optimized_loss, batch_id)
-            # self.gpu_tracker.track(8)
 
             interactions.append(interaction)
             torch.cuda.empty_cache()
-            # self.gpu_tracker.track(9)
 
         if self.optimizer_scheduler:
             self.optimizer_scheduler.step()

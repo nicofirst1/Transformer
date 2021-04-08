@@ -9,6 +9,7 @@ from torchtext.data import get_tokenizer
 from torchtext.vocab import Vocab
 
 from core.util import console
+from data_gen.TextData import TextData
 
 
 def load_vocab(opts, train_data):
@@ -63,10 +64,23 @@ def preprocess_dataset(opts, dataset, src_vocab, trg_vocab):
         trg = torch.as_tensor(trg)
         data[idx] = (src, trg)
 
-    dataset._iterator = iter(data)
+    return TextData(dataset.description, data)
 
 
 def batch_generator(opts, src_vocab, trg_vocab):
+    PAD_IDX = src_vocab['<pad>']
+
+    def inner(data_batch):
+        src_batch = [x[0] for x in data_batch]
+        trg_batch = [x[1] for x in data_batch]
+        src_batch = pad_sequence(src_batch, padding_value=PAD_IDX)
+        trg_batch = pad_sequence(trg_batch, padding_value=PAD_IDX)
+        return src_batch, trg_batch
+
+    return inner
+
+
+def batch_generator2(opts, src_vocab, trg_vocab):
     src_tok = get_tokenizer('spacy', language=opts.src_lang)
     trg_tok = get_tokenizer('spacy', language=opts.trg_lang)
     BOS_IDX = src_vocab['<bos>']
@@ -103,18 +117,33 @@ def batch_generator(opts, src_vocab, trg_vocab):
     return inner
 
 
+def reduce_data(data, perc):
+    to_remove = int(len(data) * (1 - perc))
+
+    data.length -= to_remove
+
+
+def update_status(status, msg):
+    status.status = f"[bold green]{msg}"
+    status.update()
+
+
 def create_dataset(opts):
     with console.status("[bold green]Dataset loading...") as status:
         src_pair = opts.src_lang.split("_")[0]
         trg_pair = opts.trg_lang.split("_")[0]
         train_data = torchtext.datasets.IWSLT2017(root='.data', split='train', language_pair=(src_pair, trg_pair))
+
         console.log("Dataset loaded.")
-        status.status = "[bold green]Creating vocabulary..."
-        status.update()
+        update_status(status, "Creating vocabulary...")
+
         src_vocab, trg_vocab = load_vocab(opts, train_data)
-        status.status = "[bold green]Initializing dataloader.."
-        status.update()
-        # preprocess_dataset(opts, train_data, src_vocab, trg_vocab)
+        update_status(status, f"Preprocessing data...")
+        train_data = preprocess_dataset(opts, train_data, src_vocab, trg_vocab)
+        update_status(status, f"Reducing dataset to {opts.data_perc}")
+
+        reduce_data(train_data, opts.data_perc)
+        update_status(status, "Initializing dataloader..")
 
         train_iter = DataLoader(train_data, batch_size=opts.batch_size, collate_fn=batch_generator(opts, src_vocab,
                                                                                                    trg_vocab))

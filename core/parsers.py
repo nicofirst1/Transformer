@@ -33,6 +33,7 @@ def _populate_cl_params(arg_parser: argparse.ArgumentParser) -> argparse.Argumen
 
 
 def data_params(parser):
+    parser.add_argument('-data_perc', default=0.003,type=float)
     parser.add_argument('-src_lang', default='en_core_web_sm')
     parser.add_argument('-trg_lang', default='it_core_news_sm')
     parser.add_argument('-min_word_freq', type=int, default=5,

@@ -128,7 +128,9 @@ class ModelingGame(nn.Module):
         logging_strategy = (
             self.train_logging_strategy if self.training else self.test_logging_strategy
         )
-        self.guessing_weight += self.guessing_step
+
+        if self.guessing_weight < 1:
+            self.guessing_weight += self.guessing_step
 
         interaction = logging_strategy.filtered_interaction(
             source=src,

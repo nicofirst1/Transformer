@@ -410,7 +410,7 @@ class ProgressBarLogger(Callback):
         od = OrderedDict()
         od["epoch"] = epoch
         od["loss"] = loss
-        aux = {k: float(torch.mean(v)) for k, v in logs.aux.items()}
+        aux = {k: float(torch.mean(torch.as_tensor(v))) for k, v in logs.aux.items()}
         od.update(aux)
 
         return od
